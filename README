@@ -1,0 +1,15 @@
+#Idea:
+Create a set of applications which all pass state updates via events
+
+#Goal
+Create system of applications which can find / download / perminantly store images
+which i want from the internet
+
+#Pieces
+- Image finders -- apps which find images and put off events announcing that they have been found
+  events: image_found :: { src_page, src_url }
+
+- Image downloader -- apps which download images to perminant storage
+  events: image_downloaded :: { src_url, 
+                                download_location, // name of download endpoint, ex: s3, local, etc
+                                download_key } // unique id of image in download endpoint
