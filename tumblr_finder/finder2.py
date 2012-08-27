@@ -16,16 +16,17 @@ def validate_page(url):
 # create our event based app
 app = EventApp('blog_scraper', # name of app
 
-                # event app will handle
-                'timer_scrape_blog',
+               # event app will handle
+               'timer_scrape_blog',
 
-                # list of handler functions for internal state
-                handle_blog,
-                validate_page,
-                BlogScraper.get_images,
-                handle_blog_image,
+               # list of handler functions for internal state
+               handle_blog,
+               validate_page,
+               BlogScraper.get_images,
+               handle_blog_image,
 
-                # name of event we fire at end of pipe
-                'image_found')
+               # name of event we fire at end of pipe
+               'image_found')
+
 
 app.run()

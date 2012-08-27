@@ -1,4 +1,4 @@
-from itertools import ifilter
+from itertools import ifilter, imap
 from operator import itemgetter
 from bs4 import BeautifulSoup as BS
 import requests
@@ -105,7 +105,7 @@ class BlogScraper(object):
         return ifilter(self._validate_pic_url, urls)
 
 
-    def get_images(self):
+    def get_blog_images(self):
         """
         generator: yields image_url, source_page_url
         """

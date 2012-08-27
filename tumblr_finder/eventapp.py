@@ -37,7 +37,11 @@ class EventApp(object):
         # each stage is going to emit an event to the next stage which
         # is based on the next stages index in the stage list
         # a 3 stage app will have name_1, name_2 as event names, one and two
-        self.rc = ReventClient(self.name, '%s_.+' % self.name, verified=True)
+        self.rc = ReventClient(self.name, '%s_.+' % self.name, verified=300)
+        # we have to have two clients since revent can't support multiple patterns
+        # per client right now
+        self.incoming_rc = ReventClient(self.name + '_incoming',
+                                        self.incoming_event, verified=300)
 
     def _stage_event_name(self, i):
         return '%s_%s' % (self.name, i)
@@ -48,8 +52,17 @@ class EventApp(object):
 
     def _run(self):
         print 'reading event'
-        event = self.rc.read(block=True)
+
+        # look for mid-run events
+        event = self.rc.read(block=True, timeout=1)
+
+        # if we didn't find any mid-run events, look for incoming
+        if not event:
+            event = self.incoming_rc.read(block=True, timeout=1)
+
         print 'event: %s' % event
+
+        # if we found an event handle it
         if event:
             try:
                 self.handle_event(event.event, event.data)
@@ -92,6 +105,9 @@ class EventApp(object):
             stage = self.stages[0]
             args, _ = get_function_args(stage)
             stage_args = map(event_data.get, args)
+            # the stack of results starts as the one's taken by
+            # initial handler
+            prev_results = stage_args
 
         print 'stage:',str(stage)
         print 'stage_index:',str(stage_index)
