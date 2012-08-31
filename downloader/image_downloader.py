@@ -8,7 +8,6 @@ OUT_DIR = './output/'
 
 proxies = {'http':'http://127.0.0.1:8000',
            'https':'http://127.0.0.1:8000'}
-proxies = {}
 
 def download(url):
     global proxies

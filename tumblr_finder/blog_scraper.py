@@ -6,7 +6,6 @@ import hashlib
 
 proxies = {'http':'http://127.0.0.1:8000',
            'https':'http://127.0.0.1:8000'}
-proxies = {}
 
 def get_html(url):
     """
@@ -56,6 +55,7 @@ class BlogScraper(object):
             # TODO: better
             if html and 'post' in html:
                 return True
+
 
         except Exception, ex:
             print 'exception validating page: %s' % ex
