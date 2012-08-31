@@ -53,12 +53,15 @@ class EventApp(object):
     def _run(self):
         print 'reading event'
 
+        from_incoming = False
+
         # look for mid-run events
         event = self.rc.read(block=True, timeout=1)
 
         # if we didn't find any mid-run events, look for incoming
         if not event:
             event = self.incoming_rc.read(block=True, timeout=1)
+            from_incoming = True
 
         print 'event: %s' % event
 
@@ -66,11 +69,13 @@ class EventApp(object):
         if event:
             try:
                 self.handle_event(event.event, event.data)
-                self.rc.confirm(event)
+                if from_incoming:
+                    self.incoming_rc.confirm(event)
+                else:
+                    self.rc.confirm(event)
             except Exception, ex:
                 raise
                 print 'Exception handling event: %s' % str(ex)
-                pass
 
     def handle_event(self, event_name, event_data):
         """ handles external event coming in """

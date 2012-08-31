@@ -34,7 +34,7 @@ class BlogScraper(object):
             yield url
 
     @staticmethod
-    def _generate_page_urls(root_url, max_pages=1000):
+    def _generate_page_urls(root_url, max_pages=100):
         for i in xrange(1, max_pages):
             yield root_url + 'page/' + str(i)
 
@@ -59,6 +59,7 @@ class BlogScraper(object):
 
         except Exception, ex:
             print 'exception validating page: %s' % ex
+            raise ex
 
         return False
 
@@ -77,26 +78,38 @@ class BlogScraper(object):
 
         except Exception, ex:
             print 'Exception making soup: %s' % str(ex)
+            raise ex
             yield []
 
         for src in imap(itemgetter('src'), soup.find_all('img')):
             yield src
 
-    def _validate_pic_url(self, url):
+    def validate_pic_url(self, url):
+        return self._validate_pic_url(url, self.min_img_size)
+
+    @staticmethod
+    def _validate_pic_url(image_url):
         """
         checks whether passed url appears to be to a valid image
 
         return True if appears valid, else False
         """
         patterns = ['media.tumblr.com','tumblr.com/photo']
-        found = False
+
+        min_img_size = 200
+
+        print 'validating pic url: %s' % image_url
+
+        if 'avatar' in image_url:
+            yield False
+
         for p in patterns:
-            if p in src:
+            if p in image_url:
                 # attempt to get the images size from the url
-                size = src[-7:-4]
-                if size.isdigit() and int(size) > self.min_img_size:
-                    return True
-        return False
+                size = image_url[-7:-4]
+                if size.isdigit() and int(size) > min_img_size:
+                    yield True
+        yield False
 
     def filter_pic_urls(self, urls):
         """

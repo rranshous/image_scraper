@@ -23,6 +23,7 @@ app = EventApp('blog_scraper', # name of app
                handle_blog,
                validate_page,
                BlogScraper.get_images,
+               BlogScraper._validate_pic_url,
                handle_blog_image,
 
                # name of event we fire at end of pipe
