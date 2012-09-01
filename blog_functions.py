@@ -1,6 +1,19 @@
-max_blog_pages = 2000
+import requests
 
-def fan_out_blog_pages(blog_url):
+max_blog_pages = 10
+proxies = {'http':'127.0.0.1:3128'}
+
+def verify_url(blog_url):
+    """
+    filter: True if url responds with 200
+    """
+    try:
+        r = requests.get(blog_url, proxies=proxies)
+        yield r.status_code == 200
+    except Exception, ex:
+        yield False
+
+def fan_out_pages(blog_url):
     """
     given the blog url generates the urls for all blog pages
 
@@ -11,16 +24,4 @@ def fan_out_blog_pages(blog_url):
     for i in xrange(1, max_blog_pages):
         yield blog_url + 'page/' + str(i)
 
-
-def filter_seen_pages(page_url):
-    """
-    filter: True for page url's which we should scrape
-
-    bases decision on last logged bad page url
-    """
-
-    return True
-
-    # TODO
-    return page_url in bad_blog_pages
 

@@ -51,8 +51,6 @@ class EventApp(object):
             self._run()
 
     def _run(self):
-        print 'reading event'
-
         from_incoming = False
 
         # look for mid-run events
@@ -60,11 +58,8 @@ class EventApp(object):
 
         # if we didn't find any mid-run events, look for incoming
         if not event:
-            print 'reading incoming'
             event = self.incoming_rc.read(block=False)
             from_incoming = True
-
-        print 'event: %s' % event
 
         # if we found an event handle it
         if event:
@@ -84,8 +79,6 @@ class EventApp(object):
         # these will be filled out
         stage_index = stage = stage_args = None
         prev_results = []
-
-        print 'handling event: [%s] %s' % (event_name, str(event_data))
 
         # see if this is the internal or external event
         if event_name.startswith(self.name):
@@ -110,19 +103,16 @@ class EventApp(object):
             stage_index = 0
             stage = self.stages[0]
             args, _ = get_function_args(stage)
+            print 'f args: %s' % (args,)
             stage_args = map(event_data.get, args)
             # the stack of results starts as the one's taken by
             # initial handler
             prev_results = stage_args
 
-        print 'stage:',str(stage)
-        print 'stage_index:',str(stage_index)
-        print 'stage_args',str(stage_args)
+        print 'Running [%s] %s' % (stage_index, stage.__name__)
 
         # all results from the stage become events
         for result in stage(*stage_args):
-
-            print 'stage result:', result
 
             # internal stages, the next event name will be the next stage
             result_event_name = self._stage_event_name(stage_index + 1)
@@ -135,13 +125,11 @@ class EventApp(object):
             # we re-fire the source event into the next stage
             if result in (True, False):
                 if result is False:
-                    print 'filtering'
                     continue # don't fire
 
             # the last stage will put out a dict, this should be fired
             # out as the outgoing event
             elif isinstance(result, dict):
-                print 'is last'
                 result_event_name = self.outgoing_event
                 result_event_data = result
 
@@ -155,6 +143,4 @@ class EventApp(object):
 
             assert result_event_name, "missing reuslt event name"
             assert result_event_data, "mssing result event data"
-            print 'result event name:', str(result_event_name)
-            print 'result event data:', str(result_event_data)
             self.rc.fire(result_event_name, result_event_data)

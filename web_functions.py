@@ -1,6 +1,6 @@
 import requests
 
-proxies = {'http':'127.0.0.1:'}
+proxies = {'http':'127.0.0.1:3128'}
 
 def get_html(url):
     """
@@ -20,12 +20,12 @@ def get_data(url):
     except:
         yield None
 
-def verify_url(page_url):
+def verify_blog_url(blog_url):
     """
     filter: True if url responds with 200
     """
     try:
-        r = requests.get(url, proxies=proxies)
-        return r.status_code == 200
-    except:
+        r = requests.get(blog_url, proxies=proxies)
+        yield r.status_code == 200
+    except Exception, ex:
         yield False
