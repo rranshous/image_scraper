@@ -22,125 +22,172 @@ def get_function_args(func):
 from revent import ReventClient
 
 class EventApp(object):
-    def __init__(self, name, incoming_event, *args):
-        self.name = name
-        self.incoming_event = incoming_event
-        self.outgoing_event = None
-        # if last arg is string, it's outgoing event name
-        if isinstance(args[-1], (unicode, basestring)):
-            self.outgoing_event = args[-1]
-            self.stages = args[:-1]
-        else:
-            self.stages = args
+    def __init__(self, app_name, stage_definitions):
 
-        # set up a revent connection based on the stages we have
-        # each stage is going to emit an event to the next stage which
-        # is based on the next stages index in the stage list
-        # a 3 stage app will have name_1, name_2 as event names, one and two
-        self.rc = ReventClient(self.name, '%s_.+' % self.name, verified=300)
-        # we have to have two clients since revent can't support multiple patterns
-        # per client right now
-        self.incoming_rc = ReventClient(self.name + '_incoming',
-                                        self.incoming_event, verified=300)
+        self.app_name = app_name
+        self.stage_definitions = stage_definitions
+        self.stages = self._create_stages()
 
-    def _stage_event_name(self, i):
-        return '%s_%s' % (self.name, i)
+    def run(self):
 
-    def run(self, stopping=None):
-        while stopping is None or not stopping.isset():
+        # forever
+        while True:
+
+            # do one cycle through the stages
             self._run()
 
     def _run(self):
-        from_incoming = False
 
-        # look for mid-run events
-        event = self.rc.read(block=True, timeout=2)
+        # run each stage, having it block for a second so we don't
+        # spin our wheels as fast as we can
+        for stage in self.stages:
+            stage.cycle(block=True, timeout=1)
 
-        # if we didn't find any mid-run events, look for incoming
-        if not event:
-            event = self.incoming_rc.read(block=False)
-            from_incoming = True
+        return stages
 
-        # if we found an event handle it
-        if event:
+    def _create_stages(self):
+
+        # go through the stage defs, creating a stage for each
+        previous_stage = None
+        for i, stage_def in enumerate(self.stage_definitions):
+
             try:
-                self.handle_event(event.event, event.data)
-                if from_incoming:
-                    self.incoming_rc.confirm(event)
-                else:
-                    self.rc.confirm(event)
-            except Exception, ex:
-                raise
-                print 'Exception handling event: %s' % str(ex)
+                next_stage = self.stage_definitions[i+1]
+            except IndexError:
+                next_stage = None
 
-    def handle_event(self, event_name, event_data):
-        """ handles external event coming in """
+            previous_stage = self._create_stage(stage_def,
+                                                previous_stage, next_stage)
+            yield previous_stage
 
-        # these will be filled out
-        stage_index = stage = stage_args = None
-        prev_results = []
+    def _create_stage(self, stage_def, previous_stage=None, next_stage=None):
 
-        # see if this is the internal or external event
-        if event_name.startswith(self.name):
+        handler = in_event = out_event = None
 
-            # it's internal
+        # TODO: update to support multiple handlers per stage def which
+        #       would result in multiple stages being created
 
-            # get our stage based on the events name
-            stage_index = int(event_name.split('_')[-1])
-            stage = self.stages[stage_index]
+        # go through each of the pieces in the stage def filling in our reqs
+        for arg in stage_def:
 
-            # get the stage's args
-            args, _ = get_function_args(stage)
-            arg_len = len(args)
-            prev_results = event_data.get('results')
-            # we they want args off the end of the list
-            stage_args = prev_results[-arg_len:]
+            if not handler and callable(arg):
+                handler = arg
 
-        else:
+            elif not in_event:
+                in_event = arg
 
-            # it's exteral
-            # we need to map the kwargs in the data to the args
-            stage_index = 0
-            stage = self.stages[0]
-            args, _ = get_function_args(stage)
-            print 'f args: %s' % (args,)
-            stage_args = map(event_data.get, args)
-            # the stack of results starts as the one's taken by
-            # initial handler
-            prev_results = stage_args
+            elif not out_event:
+                out_event = arg
 
-        print 'Running [%s] %s' % (stage_index, stage.__name__)
+        # fill in missing pieces
+        if not in_event and previous_stage:
+            in_event = previous_stage.out_event
 
-        # all results from the stage become events
-        for result in stage(*stage_args):
+        if not out_event and next_stage:
+            out_event = next_stage.in_event
 
-            # internal stages, the next event name will be the next stage
-            result_event_name = self._stage_event_name(stage_index + 1)
+        # make sure we've got everything
+        assert handler, "No handler found for stage: " + str(stage_def)
+        assert in_event, "No in event found: " + str(stage_def)
 
-            # internal events will store their result list under the
-            # results key in the event's data
-            result_event_data = dict( results = prev_results[:] )
+        # finally, create our handler
+        return AppHandler(self.app_name, in_event, handler, out_event)
 
-            # if it's a bool than it's a filter. If it's true
-            # we re-fire the source event into the next stage
-            if result in (True, False):
-                if result is False:
-                    continue # don't fire
 
-            # the last stage will put out a dict, this should be fired
-            # out as the outgoing event
-            elif isinstance(result, dict):
-                result_event_name = self.outgoing_event
-                result_event_data = result
+class AppHandler(object):
 
-            # just a normal stage, we should update the event's results
-            # with this events
+    def __init__(self, app_name, in_event, handler, out_event=None):
+
+        self.app_name
+        self.in_event = in_event
+        self.handler = handler
+        self.handler_args = get_function_args(self.handler)
+        self.out_event = out_event
+
+        # sanity checks
+        assert in_event, "Must provide in_event"
+        assert handler, "Must provide handler"
+
+        # subscribe to our in_event
+        channel = '%s-%s' % (app_name, in_event)
+        self.rc = ReventClient(channel, in_event, verified=True)
+
+    def cycle(self, block=False, timeout=1):
+
+        # grab up our event
+        event = self.rc.read(block=block, timeout=timeout)
+        if event:
+
+            # build the handlers input from the event data
+            handler_args, handler_kwargs = self._build_handler_args(event)
+
+            # call our handler
+            for result in self.handler(*handler_args, *handler_kwargs):
+
+                # see if this results calls for another event to be fired
+                result_event = self._build_result_event(event, result)
+
+                # result event is a tuple: (event_name, event_data)
+                if result_event:
+                    self.rc.fire(*result_event)
+
+    def _build_handler_args(self, event):
+
+        # fill in the args / kwargs from event data
+        handler_args = []
+        handler_kwargs = {}
+
+        # supports special args such as event, event_name, event_data
+
+        # TODO: better
+
+        for arg in self.handler_args[0]:
+            if arg == 'event_data':
+                handler_args.append(event.data)
+            elif arg == 'event_name':
+                handler_args.append(event.name)
+            elif arg == 'event':
+                handler_args.append(event)
             else:
-                if isinstance(result, (list,tuple)):
-                    result_event_data['results'].extend(result)
-                else:
-                    result_event_data['results'].append(result)
+                handler_args.append(event.data.get(arg))
 
-            assert result_event_name, "missing reuslt event name"
-            assert result_event_data, "mssing result event data"
-            self.rc.fire(result_event_name, result_event_data)
+        for kwarg in self.handler_args[1]:
+            if arg == 'event_data':
+                handler_kwargs[kwarg] = event.data
+            elif arg == 'event_name':
+                handler_kwargs[kwarg] = event.name
+            elif arg == 'event':
+                handler_kwargs[kwarg] = event
+            else:
+                handler_kwargs[kwarg] = event.data.get(kwarg)
+
+        return handler_args, handler_kwargs
+
+    def _build_result_event(self, event, result):
+
+        # if they didn't define an out event than we aren't putting
+        # off events even if we get a result
+        if not self.out_event:
+            return None
+
+        # if the reuslt is a true or false than it's a filter
+        # a false means don't re-fire the event, True means re-fire
+        if result is True:
+            return event.name, event.data
+
+        # if the reuslt is a dictionary than we're going to use that
+        # dict as the resulting event's data
+        if isinstance(result, dict):
+            return self.out_event, result
+
+        # if it's anything else we're going to update the source event's
+        # data to include these results and use resuling data as new
+        # events data
+        event_data = event.data.copy()
+        previous_results = event_data.setdefault('results', [])
+        if isinstance(result, (list, tuple)):
+            previous_results.extend(result)
+        else:
+            previous_results.append(result)
+        return self.out_event, event_data
+

@@ -13,44 +13,36 @@ import image_functions as image
 
 app = EventApp('blog_scraper',
 
-               # what event are we taking in
-               'timer_scrape_blog',
-
                # make sure blog exists
-               blog.verify_url,
+               ('timer_scrape_blog', blog.verify_url, 'verified_blog_url'),
 
                # fan out the blogs possible pages
-               blog.fan_out_pages,
+               (blog.fan_out_pages, 'possible_blog_page'),
 
                # check and see if we've hit pages we've
                # seen before
-               page.filter_seen,
+               (page.filter_seen, 'unseen_blog_page'),
 
                # get the page html
-               page.get_html,
+               (page.get_html, 'blog_page_html'),
 
                # scrape the blog page for it's images
-               page.scrape_images,
+               (page.scrape_images, 'blog_image'),
 
                # get the size of the image
-               image.get_size,
+               (image.get_size, 'blog_image_size'),
 
                # filter the images down to ones which
                # meet our criteria (size, etc)
-               image.filter_bad,
+               (image.filter_bad, 'good_blog_image'),
 
                # filter out images we've already seen
-               image.filter_seen,
+               (image.filter_seen, 'unseen_blog_image'),
 
                # download the image
-               image.get_data,
+               (image.get_data, 'blog_image_data'),
 
                # save the image down
-               image.save,
-
-               # broadcast what we've done
-               image.broadcast_save,
-
-               'image_saved')
+               (image.save, 'blog_image_saved'))
 
 app.run()
