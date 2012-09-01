@@ -4,8 +4,8 @@ from bs4 import BeautifulSoup as BS
 import requests
 import hashlib
 
-proxies = {'http':'http://127.0.0.1:8000',
-           'https':'http://127.0.0.1:8000'}
+proxies = {'http':'http://127.0.0.1:3128',
+           'https':'http://127.0.0.1:3128'}
 
 def get_html(url):
     """
@@ -34,7 +34,7 @@ class BlogScraper(object):
             yield url
 
     @staticmethod
-    def _generate_page_urls(root_url, max_pages=100):
+    def _generate_page_urls(root_url, max_pages=1000):
         for i in xrange(1, max_pages):
             yield root_url + 'page/' + str(i)
 

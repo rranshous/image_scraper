@@ -56,11 +56,12 @@ class EventApp(object):
         from_incoming = False
 
         # look for mid-run events
-        event = self.rc.read(block=True, timeout=1)
+        event = self.rc.read(block=True, timeout=2)
 
         # if we didn't find any mid-run events, look for incoming
         if not event:
-            event = self.incoming_rc.read(block=True, timeout=1)
+            print 'reading incoming'
+            event = self.incoming_rc.read(block=False)
             from_incoming = True
 
         print 'event: %s' % event
