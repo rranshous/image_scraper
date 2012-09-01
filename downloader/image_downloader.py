@@ -6,8 +6,8 @@ from os.path import join, exists
 
 OUT_DIR = './output/'
 
-proxies = {'http':'http://127.0.0.1:8000',
-           'https':'http://127.0.0.1:8000'}
+proxies = {'http':'http://127.0.0.1:3128',
+           'https':'http://127.0.0.1:3128'}
 
 def download(url):
     global proxies
@@ -17,14 +17,14 @@ def handle_found(src_page, src_url):
     image_data = download(src_url)
     sha = sha1(image_data).hexdigest()
     out_path = join(OUT_DIR, sha)
-    print 'writing: %s' % out_path
     if not exists(out_path):
         with open(out_path, 'wb') as fh:
             fh.write(image_data)
-    yield dict( src_url = src_url,
-                src_page = src_page,
-                download_location='local',
-                download_key=sha )
+        print 'writing: %s' % out_path
+        yield dict( src_url = src_url,
+                    src_page = src_page,
+                    download_location='local',
+                    download_key=sha )
 
 app = EventApp('image_downloader',
 
