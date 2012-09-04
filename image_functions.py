@@ -82,6 +82,7 @@ def save(blog_url, page_url, image_url):
 
     # if there is no image data, we're done
     if not image_data:
+        print 'cant save no image data'
         yield False
 
     else:
@@ -92,6 +93,7 @@ def save(blog_url, page_url, image_url):
         # don't bother re-saving
         if not exists(save_path):
 
+            print 'save_path: %s' % save_path
             with open(save_path, 'wb') as fh:
                 fh.write(image_data)
 
@@ -99,3 +101,6 @@ def save(blog_url, page_url, image_url):
                         page_url=page_url,
                         save_path=save_path,
                         image_url=image_url )
+
+        else:
+            print 'no save: %s' % save_path

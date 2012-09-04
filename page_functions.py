@@ -25,6 +25,9 @@ def scrape_images(page_url):
         yield False
 
     else:
+
+        print 'scraping page: %s' % page_url
+
         # grab our html and yield up the image source urls
         soup = BS(page_html)
         for src in imap(itemgetter('src'), soup.find_all('img')):

@@ -9,8 +9,6 @@ import blog_functions as blog
 import page_functions as page
 import image_functions as image
 
-# blog_url, page_url, page_html, image_url, image_size, image_data, image_save_path
-
 app = EventApp('blog_scraper',
 
                # make sure blog exists
