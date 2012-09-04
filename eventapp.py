@@ -1,6 +1,8 @@
 
 from inspect import getargspec
 from itertools import chain
+from threading import Thread, Event
+from time import sleep
 
 # ty rranshous/dss/accessor.py
 def get_function_args(func):
@@ -32,26 +34,42 @@ class EventApp(object):
         self.create_stages()
 
     def run(self):
+        """
+        starts up a child thread for each stage
+        """
 
-        print 'running event app'
+        def thread_run(app_handler, lock):
+            while not lock.is_set():
+                app_handler.cycle(block=True, timeout=4)
 
-        # forever
-        while True:
+        # set up a event so we can stop all the handlers gracefully
+        lock = Event()
 
-            # do one cycle through the stages
-            self._run()
-
-    def _run(self):
-
-        # run each stage, having it block for a second so we don't
-        # spin our wheels as fast as we can
+        # create a thread for each handler
+        threads = []
+        print 'creating threads'
         for i, stage in enumerate(self.stages):
-            print 'cycling stage: %s' % i
-            #stage.cycle(block=True, timeout=1)
-            stage.cycle(block=False)
+            thread = Thread(target=thread_run, args=(stage, lock))
+            threads.append(thread)
 
-        return True
+        # start our threads
+        print 'starting threads'
+        for thread in threads:
+            thread.start()
 
+        # now chill about waiting for an interupt
+        try:
+            while True:
+                sleep(1)
+        except Exception, ex:
+            print 'EXCEPTION: %s' % (ex)
+
+        print 'stopping threads'
+
+        # stop all the threads
+        lock.set()
+        for thread in threads:
+            thread.join()
 
     def create_stages(self):
 
@@ -165,19 +183,13 @@ class AppHandler(object):
 
     def cycle(self, block=False, timeout=1):
 
-        print 'cycling: %s' % self
-
         # grab up our event
         event = self.rc.read(block=block, timeout=timeout)
 
         if event:
 
-            print '[%s] found event: %s' % (self, event)
-
             # build the handlers input from the event data
             handler_args, handler_kwargs = self._build_handler_args(event)
-
-            #print 'handler args/kwargs: %s :: %s' % (handler_args, handler_kwargs)
 
             # call our handler
             for result in self.handler(*handler_args, **handler_kwargs):
