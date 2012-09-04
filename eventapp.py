@@ -1,5 +1,6 @@
 
 from inspect import getargspec
+from itertools import chain
 
 # ty rranshous/dss/accessor.py
 def get_function_args(func):
@@ -22,11 +23,13 @@ def get_function_args(func):
 from revent import ReventClient
 
 class EventApp(object):
-    def __init__(self, app_name, stage_definitions):
+    def __init__(self, app_name, *stage_definitions):
 
         self.app_name = app_name
         self.stage_definitions = stage_definitions
-        self.stages = self._create_stages()
+
+        self.stages = []
+        self.create_stages()
 
     def run(self):
 
@@ -43,32 +46,73 @@ class EventApp(object):
         for stage in self.stages:
             stage.cycle(block=True, timeout=1)
 
-        return stages
+        return True
 
-    def _create_stages(self):
+
+    def create_stages(self):
+
+        # we are going to create the stages in multiple passes
+        # we do passes until every stage has an in and out event
+        print 'creating stages: %s' % str(self.stage_definitions)
 
         # go through the stage defs, creating a stage for each
-        previous_stage = None
-        for i, stage_def in enumerate(self.stage_definitions):
+        # create inline list of stages missing their in event or out event
+        c = 0
+        def incomplete():
+            incomplete_stages = [s for s in self.stages if not s.in_event or not s.out_event]
+            if incomplete_stages:
+                print 'INCOMPLETE STAGES: %s' % (str(incomplete_stages))
+            if len(self.stages) != len(self.stage_definitions):
+                print 'INCOMPLETE STAGES LEN'
+            return incomplete_stages or len(self.stages) != len(self.stage_definitions)
 
-            try:
-                next_stage = self.stage_definitions[i+1]
-            except IndexError:
-                next_stage = None
+        while incomplete():
+            print 'PASS %s' % c; c+=1
+            for i, stage_def in enumerate(self.stage_definitions):
+                print 'STAGE: %s :: %s' % (i, str(stage_def))
 
-            previous_stage = self._create_stage(stage_def,
-                                                previous_stage, next_stage)
-            yield previous_stage
+                try:
+                    next_stage = self.stages[i+1]
+                except IndexError:
+                    next_stage = None
+
+                # limit begining of seek range to begining of list
+                # since python list index's can be negative
+                if i-1 < 0:
+                    previous_stage = None
+                else:
+                    previous_stage = self.stages[i-1]
+
+                stage = self._create_stage(stage_def,
+                                           previous_stage, next_stage)
+
+                print '** RESULT: %s' % stage
+
+                try:
+                    self.stages[i] = stage
+                except IndexError:
+                    self.stages.append(stage)
+
+        return self.stages
+
 
     def _create_stage(self, stage_def, previous_stage=None, next_stage=None):
 
         handler = in_event = out_event = None
 
+        print '---creating stage: \n---%s\n---%s\n---%s---' % (previous_stage, stage_def, next_stage)
+
         # TODO: update to support multiple handlers per stage def which
         #       would result in multiple stages being created
 
         # go through each of the pieces in the stage def filling in our reqs
-        for arg in stage_def:
+        # we include the in event from the previous and out event from the next
+        # if present
+        inclusive_stage_def = chain([previous_stage.out_event] if previous_stage else [],
+                                    stage_def,
+                                    [next_stage.in_event] if next_stage else [])
+
+        for arg in inclusive_stage_def:
 
             if not handler and callable(arg):
                 handler = arg
@@ -98,7 +142,7 @@ class AppHandler(object):
 
     def __init__(self, app_name, in_event, handler, out_event=None):
 
-        self.app_name
+        self.app_name = app_name
         self.in_event = in_event
         self.handler = handler
         self.handler_args = get_function_args(self.handler)
@@ -112,6 +156,11 @@ class AppHandler(object):
         channel = '%s-%s' % (app_name, in_event)
         self.rc = ReventClient(channel, in_event, verified=True)
 
+    def __repr__(self):
+        return '<AppHandler %s=>%s=>%s>' % (self.in_event,
+                                            self.handler.__name__,
+                                            self.out_event or '')
+
     def cycle(self, block=False, timeout=1):
 
         # grab up our event
@@ -122,7 +171,7 @@ class AppHandler(object):
             handler_args, handler_kwargs = self._build_handler_args(event)
 
             # call our handler
-            for result in self.handler(*handler_args, *handler_kwargs):
+            for result in self.handler(*handler_args, **handler_kwargs):
 
                 # see if this results calls for another event to be fired
                 result_event = self._build_result_event(event, result)
