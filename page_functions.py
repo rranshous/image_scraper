@@ -6,23 +6,21 @@ from operator import itemgetter
 proxies = {'http':'127.0.0.1:3128'}
 min_image_size = 200
 
-def get_html(page_url):
-    """
-    yields HTML or None for page's url
-    """
-
+def _get_html(page_url):
     try:
-        yield 'page_html', requests.get(page_url, proxies=proxies).text
+        return requests.get(page_url, proxies=proxies).text
     except:
-        yield None
+        return None
 
 
-def scrape_images(page_html):
+def scrape_images(page_url):
     """
     yields up the src for all images on page
     """
 
-    # if we didn't get the html, we're done
+    # pull down the html
+    page_html = _get_html(page_url)
+
     if not page_html:
         yield False
 

@@ -23,9 +23,6 @@ app = EventApp('blog_scraper',
                # seen before
                (page.filter_seen, 'unseen_blog_page'),
 
-               # get the page html
-               (page.get_html, 'blog_page_html'),
-
                # scrape the blog page for it's images
                (page.scrape_images, 'blog_image'),
 
@@ -38,9 +35,6 @@ app = EventApp('blog_scraper',
 
                # filter out images we've already seen
                (image.filter_seen, 'unseen_blog_image'),
-
-               # download the image
-               (image.get_data, 'blog_image_data'),
 
                # save the image down
                (image.save, 'blog_image_saved'))

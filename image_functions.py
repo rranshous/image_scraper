@@ -66,23 +66,19 @@ def filter_seen(image_url, image_size):
     #yield image_url in downloaded_images
 
 
-def get_data(image_url, image_size):
-    """
-    yields up the image's data or None
-    """
-
+def _get_data(image_url):
     try:
-        data = requests.get(image_url, proxies=proxies).content
-        # encode the data so that it's json compatible
-        yield 'image_data', b64encode(data)
-    except:
-        yield None
+        return requests.get(image_url, proxies=proxies).content
+    except Exception:
+        return None
 
-
-def save(blog_url, page_url, image_url, image_data):
+def save(blog_url, page_url, image_url):
     """
     saves the image to the disk, if not already present
     """
+
+    # download the image's data
+    image_data = _get_data(image_url)
 
     # if there is no image data, we're done
     if not image_data:
@@ -90,9 +86,7 @@ def save(blog_url, page_url, image_url, image_data):
 
     else:
 
-        # image data is going to be encoded
-        image_data = b64decode(image_data)
-
+        # figure out where on the disk to save, abspath
         save_path = _get_save_path(image_url, image_data)
 
         # don't bother re-saving
