@@ -47,7 +47,8 @@ class EventApp(object):
         # spin our wheels as fast as we can
         for i, stage in enumerate(self.stages):
             print 'cycling stage: %s' % i
-            stage.cycle(block=True, timeout=1)
+            #stage.cycle(block=True, timeout=1)
+            stage.cycle(block=False)
 
         return True
 
@@ -181,8 +182,6 @@ class AppHandler(object):
             # call our handler
             for result in self.handler(*handler_args, **handler_kwargs):
 
-                print 'result'
-
                 # see if this results calls for another event to be fired
                 result_event = self._build_result_event(event, result)
 
@@ -202,8 +201,6 @@ class AppHandler(object):
         # supports special args such as event, event_name, event_data
 
         # TODO: better
-
-        print 'building handler args: %s %s' % (event, str(self.handler_args))
 
         for arg in self.handler_args[0]:
             if arg == 'event_data':
