@@ -27,7 +27,8 @@ def get_size(image_url):
     # and inspect the image
     # TODO
 
-    yield found_size
+    if found_size:
+        yield 'image_size', found_size
 
 
 def filter_bad(image_url, image_size):
@@ -73,12 +74,12 @@ def get_data(image_url, image_size):
     try:
         data = requests.get(image_url, proxies=proxies).content
         # encode the data so that it's json compatible
-        yield b64encode(data)
+        yield 'image_data', b64encode(data)
     except:
         yield None
 
 
-def save(image_url, image_size, image_data):
+def save(blog_url, page_url, image_url, image_data):
     """
     saves the image to the disk, if not already present
     """
@@ -100,8 +101,7 @@ def save(image_url, image_size, image_data):
             with open(save_path, 'wb') as fh:
                 fh.write(image_data)
 
-            yield save_path
-
-def broadcast_save(blog_url, page_url, page_html, image_url,
-                   image_size, image_data, image_save_path):
-    yield dict(blog_url=blog_url, page_url=page_url, image_url=image_url, image_size=image_size, image_save_path=image_save_path)
+            yield dict( blog_url=blog_url,
+                        page_url=page_url,
+                        save_path=save_path,
+                        image_url=image_url )

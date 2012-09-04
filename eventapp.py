@@ -7,8 +7,8 @@ def get_function_args(func):
     """ returns list of functions args + list of named args """
     arg_spec = getargspec(func)
     return (
-        filter(lambda v: v!='self', arg_spec.args or []),
-        filter(lambda v: v!='self', arg_spec.keywords or [])
+        map(unicode,filter(lambda v: v!='self', arg_spec.args or [])),
+        map(unicode,filter(lambda v: v!='self', arg_spec.keywords or []))
     )
 
 # first handler's args based on incoming events kwarg based args
@@ -20,7 +20,7 @@ def get_function_args(func):
 #   to want newest args (end of stack)
 # handlers which return Bools are treated as filterse
 
-from revent import ReventClient
+from revent import ReventClient, ReventMessage
 
 class EventApp(object):
     def __init__(self, app_name, *stage_definitions):
@@ -33,6 +33,8 @@ class EventApp(object):
 
     def run(self):
 
+        print 'running event app'
+
         # forever
         while True:
 
@@ -43,7 +45,8 @@ class EventApp(object):
 
         # run each stage, having it block for a second so we don't
         # spin our wheels as fast as we can
-        for stage in self.stages:
+        for i, stage in enumerate(self.stages):
+            print 'cycling stage: %s' % i
             stage.cycle(block=True, timeout=1)
 
         return True
@@ -85,8 +88,6 @@ class EventApp(object):
 
                 stage = self._create_stage(stage_def,
                                            previous_stage, next_stage)
-
-                print '** RESULT: %s' % stage
 
                 try:
                     self.stages[i] = stage
@@ -163,22 +164,34 @@ class AppHandler(object):
 
     def cycle(self, block=False, timeout=1):
 
+        print 'cycling: %s' % self
+
         # grab up our event
         event = self.rc.read(block=block, timeout=timeout)
+
         if event:
+
+            print '[%s] found event: %s' % (self, event)
 
             # build the handlers input from the event data
             handler_args, handler_kwargs = self._build_handler_args(event)
 
+            #print 'handler args/kwargs: %s :: %s' % (handler_args, handler_kwargs)
+
             # call our handler
             for result in self.handler(*handler_args, **handler_kwargs):
+
+                print 'result'
 
                 # see if this results calls for another event to be fired
                 result_event = self._build_result_event(event, result)
 
-                # result event is a tuple: (event_name, event_data)
+                # result event is event, event_data
                 if result_event:
                     self.rc.fire(*result_event)
+
+        # let them know we're done handling the event
+        self.rc.confirm(event)
 
     def _build_handler_args(self, event):
 
@@ -190,11 +203,13 @@ class AppHandler(object):
 
         # TODO: better
 
+        print 'building handler args: %s %s' % (event, str(self.handler_args))
+
         for arg in self.handler_args[0]:
             if arg == 'event_data':
                 handler_args.append(event.data)
             elif arg == 'event_name':
-                handler_args.append(event.name)
+                handler_args.append(event.event)
             elif arg == 'event':
                 handler_args.append(event)
             else:
@@ -204,7 +219,7 @@ class AppHandler(object):
             if arg == 'event_data':
                 handler_kwargs[kwarg] = event.data
             elif arg == 'event_name':
-                handler_kwargs[kwarg] = event.name
+                handler_kwargs[kwarg] = event.event
             elif arg == 'event':
                 handler_kwargs[kwarg] = event
             else:
@@ -219,15 +234,32 @@ class AppHandler(object):
         if not self.out_event:
             return None
 
+        # if the result if an event, just fire it's info
+        if isinstance(result, ReventMessage):
+            return result.event, result.data
+
         # if the reuslt is a true or false than it's a filter
         # a false means don't re-fire the event, True means re-fire
+        # if we have an out event set than we'll fire the input event's
+        # data w/ our out event name
         if result is True:
-            return event.name, event.data
+            return self.out_event, event.data
+
+        # if the result if false than we're filting the message
+        if result is False:
+            return None
 
         # if the reuslt is a dictionary than we're going to use that
         # dict as the resulting event's data
         if isinstance(result, dict):
             return self.out_event, result
+
+        # if it's a tuple it could be a k/v pair to set in the previous
+        # events data (k,v)
+        if isinstance(result, tuple) and len(result) == 2:
+            # update the data in place, we're already not thread safe
+            event.data[result[0]] = result[1]
+            return self.out_event, event.data
 
         # if it's anything else we're going to update the source event's
         # data to include these results and use resuling data as new
@@ -238,5 +270,6 @@ class AppHandler(object):
             previous_results.extend(result)
         else:
             previous_results.append(result)
+
         return self.out_event, event_data
 

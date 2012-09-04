@@ -12,7 +12,7 @@ def get_html(page_url):
     """
 
     try:
-        yield requests.get(page_url, proxies=proxies).text
+        yield 'page_html', requests.get(page_url, proxies=proxies).text
     except:
         yield None
 
@@ -30,7 +30,7 @@ def scrape_images(page_html):
         # grab our html and yield up the image source urls
         soup = BS(page_html)
         for src in imap(itemgetter('src'), soup.find_all('img')):
-            yield src
+            yield 'image_url', src
 
 
 def filter_seen(page_url):
@@ -40,7 +40,6 @@ def filter_seen(page_url):
     bases decision on last logged bad page url
     """
 
+    # TODO
     yield True
 
-    # TODO
-    #yield page_url in bad_blog_pages

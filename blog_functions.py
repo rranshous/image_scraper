@@ -1,6 +1,6 @@
 import requests
 
-max_blog_pages = 10
+max_blog_pages = 2
 proxies = {'http':'127.0.0.1:3128'}
 
 def verify_url(blog_url):
@@ -9,11 +9,11 @@ def verify_url(blog_url):
     """
     try:
         r = requests.get(blog_url, proxies=proxies)
-        yield r.status_code == 200
+        yield True
     except Exception, ex:
-        yield False
+        pass
 
-def fan_out_pages(blog_url):
+def fan_out_pages(blog_url, event_data):
     """
     given the blog url generates the urls for all blog pages
 
@@ -22,6 +22,6 @@ def fan_out_pages(blog_url):
     """
 
     for i in xrange(1, max_blog_pages):
-        yield blog_url + 'page/' + str(i)
+        yield 'page_url', blog_url + 'page/' + str(i)
 
 
