@@ -24,6 +24,8 @@ def get_function_args(func):
 
 from revent import ReventClient, ReventMessage
 
+threads_per_stage = 5
+
 class EventApp(object):
     def __init__(self, app_name, *stage_definitions):
 
@@ -49,8 +51,9 @@ class EventApp(object):
         threads = []
         print 'creating threads'
         for i, stage in enumerate(self.stages):
-            thread = Thread(target=thread_run, args=(stage, lock))
-            threads.append(thread)
+            for j in xrange(threads_per_stage):
+                thread = Thread(target=thread_run, args=(stage, lock))
+                threads.append(thread)
 
         # start our threads
         print 'starting threads'
@@ -188,10 +191,13 @@ class AppHandler(object):
 
         if event:
 
+            print 'EVENT: %s' % event
+
             # build the handlers input from the event data
             handler_args, handler_kwargs = self._build_handler_args(event)
 
             # call our handler
+            print 'H [%s]\n' % self.handler.__name__
             for result in self.handler(*handler_args, **handler_kwargs):
 
                 # see if this results calls for another event to be fired
@@ -201,8 +207,8 @@ class AppHandler(object):
                 if result_event:
                     self.rc.fire(*result_event)
 
-        # let them know we're done handling the event
-        self.rc.confirm(event)
+            # let them know we're done handling the event
+            self.rc.confirm(event)
 
     def _build_handler_args(self, event):
 
