@@ -2,4 +2,4 @@
 *.pyc
 *.rdb
 /output
-
+/sites.txt
