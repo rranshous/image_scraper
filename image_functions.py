@@ -27,6 +27,8 @@ def get_size(image_url):
     # and inspect the image
     # TODO
 
+    print 'get_size: %s => %s' % (image_url, found_size)
+
     if found_size:
         yield 'image_size', found_size
 
@@ -55,12 +57,21 @@ def _get_save_path(image_url, image_data):
     return join(save_root, sha1(image_data).hexdigest())
 
 
-def filter_seen(image_url, image_size):
+def filter_seen(image_url, image_size, _set):
     """
     filter: True if we haven't already downloaded image
+
+    based on image url
     """
 
-    yield True
+    if image_url not in _set('seen_image_urls'):
+        print 'have not seen image url: %s' % image_url
+        _set('seen_image_urls').add(image_url)
+        yield True
+
+    else:
+        print 'have seen image'
+        yield False
 
     # TODO: check redis for the url
     #yield image_url in downloaded_images

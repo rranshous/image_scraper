@@ -1,8 +1,9 @@
 
 from inspect import getargspec
 from itertools import chain
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from time import sleep
+from redis_natives import datatypes as rn
 
 # ty rranshous/dss/accessor.py
 def get_function_args(func):
@@ -40,19 +41,19 @@ class EventApp(object):
         starts up a child thread for each stage
         """
 
-        def thread_run(app_handler, lock):
-            while not lock.is_set():
+        def thread_run(app_handler, stop_event):
+            while not stop_event.is_set():
                 app_handler.cycle(block=True, timeout=4)
 
         # set up a event so we can stop all the handlers gracefully
-        lock = Event()
+        stop_event = Event()
 
         # create a thread for each handler
         threads = []
         print 'creating threads'
         for i, stage in enumerate(self.stages):
             for j in xrange(threads_per_stage):
-                thread = Thread(target=thread_run, args=(stage, lock))
+                thread = Thread(target=thread_run, args=(stage, stop_event))
                 threads.append(thread)
 
         # start our threads
@@ -110,6 +111,8 @@ class EventApp(object):
 
                 stage = self._create_stage(stage_def,
                                            previous_stage, next_stage)
+
+                print '>> RESULT: %s' % stage
 
                 try:
                     self.stages[i] = stage
@@ -176,8 +179,20 @@ class AppHandler(object):
         assert handler, "Must provide handler"
 
         # subscribe to our in_event
-        channel = '%s-%s' % (app_name, in_event)
-        self.rc = ReventClient(channel, in_event, verified=True)
+        self.channel = '%s-%s-%s' % (app_name, in_event, self.handler.__name__)
+        self.rc = ReventClient(self.channel, in_event, verified=120)
+
+        # make our redis namespace the same as our channel
+        self.redis_ns = 'App-%s' % self.app_name
+
+
+    # helper methods for accessing natives
+    def _dict(self, name):
+        return rn.Dict(self.rc.conn, '%s:%s' % (self.redis_ns, name))
+    def _list(self, name):
+        return rn.List(self.rc.conn, '%s:%s' % (self.redis_ns, name))
+    def _set(self, name):
+        return rn.Set(self.rc.conn, '%s:%s' % (self.redis_ns, name))
 
     def __repr__(self):
         return '<AppHandler %s=>%s=>%s>' % (self.in_event,
@@ -191,13 +206,10 @@ class AppHandler(object):
 
         if event:
 
-            print 'EVENT: %s' % event
-
             # build the handlers input from the event data
             handler_args, handler_kwargs = self._build_handler_args(event)
 
             # call our handler
-            print 'H [%s]\n' % self.handler.__name__
             for result in self.handler(*handler_args, **handler_kwargs):
 
                 # see if this results calls for another event to be fired
@@ -205,6 +217,7 @@ class AppHandler(object):
 
                 # result event is event, event_data
                 if result_event:
+                    print '[%s] [%s] %s => %s' % (event, self, str(result), str(result_event))
                     self.rc.fire(*result_event)
 
             # let them know we're done handling the event
@@ -227,16 +240,28 @@ class AppHandler(object):
                 handler_args.append(event.event)
             elif arg == 'event':
                 handler_args.append(event)
+            elif arg == '_dict':
+                handler_args.append(self._dict)
+            elif arg == '_list':
+                handler_args.append(self._list)
+            elif arg == '_set':
+                handler_args.append(self._set)
             else:
                 handler_args.append(event.data.get(arg))
 
         for kwarg in self.handler_args[1]:
-            if arg == 'event_data':
+            if kwarg == 'event_data':
                 handler_kwargs[kwarg] = event.data
-            elif arg == 'event_name':
+            elif kwarg == 'event_name':
                 handler_kwargs[kwarg] = event.event
-            elif arg == 'event':
+            elif kwarg == 'event':
                 handler_kwargs[kwarg] = event
+            elif kwarg == '_dict':
+                handler_kwargs[kwarg] = self._dict
+            elif kwarg == '_list':
+                handler_kwargs[kwarg] = self._list
+            elif kwarg == '_set':
+                handler_kwargs[kwarg] = self._set
             else:
                 handler_kwargs[kwarg] = event.data.get(kwarg)
 
@@ -272,7 +297,7 @@ class AppHandler(object):
         # if it's a tuple it could be a k/v pair to set in the previous
         # events data (k,v)
         if isinstance(result, tuple) and len(result) == 2:
-            # update the data in place, we're already not thread safe
+            # update the data in place, no one else should touch!
             event.data[result[0]] = result[1]
             return self.out_event, event.data
 

@@ -24,15 +24,15 @@ app = EventApp('blog_scraper',
                # scrape the blog page for it's images
                (page.scrape_images, 'blog_image'),
 
+               # filter out images we've already seen
+               (image.filter_seen, 'unseen_blog_image'),
+
                # get the size of the image
                (image.get_size, 'blog_image_size'),
 
                # filter the images down to ones which
                # meet our criteria (size, etc)
                (image.filter_bad, 'good_blog_image'),
-
-               # filter out images we've already seen
-               (image.filter_seen, 'unseen_blog_image'),
 
                # save the image down
                (image.save, 'blog_image_saved'))
