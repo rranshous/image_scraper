@@ -72,7 +72,7 @@ def _get_data(image_url):
     except Exception:
         return None
 
-def save(blog_url, page_url, image_url):
+def save(blog_url, page_url, image_url, event):
     """
     saves the image to the disk, if not already present
     """
@@ -93,7 +93,7 @@ def save(blog_url, page_url, image_url):
         # don't bother re-saving
         if not exists(save_path):
 
-            print 'save_path: %s' % save_path
+            print 'save: %s %s' % (image_url, save_path)
             with open(save_path, 'wb') as fh:
                 fh.write(image_data)
 
@@ -103,4 +103,7 @@ def save(blog_url, page_url, image_url):
                         image_url=image_url )
 
         else:
-            print 'no save: %s' % save_path
+            print 'save exists\n'
+            print 'no save: %s %s %s' % (image_url, save_path, event)
+
+            print 'EVENT: %s' % event
