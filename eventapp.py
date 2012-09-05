@@ -25,7 +25,7 @@ def get_function_args(func):
 
 from revent import ReventClient, ReventMessage
 
-threads_per_stage = 5
+threads_per_stage = 2
 
 class EventApp(object):
     def __init__(self, app_name, *stage_definitions):
@@ -193,6 +193,8 @@ class AppHandler(object):
         return rn.List(self.rc.conn, '%s:%s' % (self.redis_ns, name))
     def _set(self, name):
         return rn.Set(self.rc.conn, '%s:%s' % (self.redis_ns, name))
+    def _int(self, name, default_value=0):
+        return rn.Primitive(self.rc.conn, '%s:%s' % (self.redis_ns, name), default_value)
 
     def __repr__(self):
         return '<AppHandler %s=>%s=>%s>' % (self.in_event,
@@ -246,6 +248,8 @@ class AppHandler(object):
                 handler_args.append(self._list)
             elif arg == '_set':
                 handler_args.append(self._set)
+            elif arg == '_int':
+                handler_args.append(self._int)
             else:
                 handler_args.append(event.data.get(arg))
 
@@ -262,6 +266,8 @@ class AppHandler(object):
                 handler_kwargs[kwarg] = self._list
             elif kwarg == '_set':
                 handler_kwargs[kwarg] = self._set
+            elif kwarg == '_int':
+                handler_kwargs[kwarg] = self._int
             else:
                 handler_kwargs[kwarg] = event.data.get(kwarg)
 

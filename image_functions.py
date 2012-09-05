@@ -49,6 +49,7 @@ def filter_bad(image_url, image_size):
         yield False
 
     else:
+        print 'good image: %s' % image_url
         yield True
 
 

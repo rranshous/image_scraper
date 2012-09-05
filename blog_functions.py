@@ -1,6 +1,6 @@
 import requests
 
-max_blog_pages = 10
+max_blog_pages = 2000
 proxies = {'http':'127.0.0.1:3128'}
 
 def verify_url(blog_url):
