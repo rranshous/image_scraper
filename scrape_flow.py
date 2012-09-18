@@ -17,15 +17,8 @@ app = EventApp('blog_scraper',
                # fan out the blogs possible pages
                (blog.fan_out_pages, 'possible_blog_page'),
 
-               # check and see if we've hit pages we've
-               # seen before
-               (page.filter_seen, 'unseen_blog_page'),
-
                # scrape the blog page for it's images
                (page.scrape_images, 'blog_image'),
-
-               # filter out images we've already seen
-               (image.filter_seen, 'unseen_blog_image'),
 
                # get the size of the image
                (image.get_size, 'blog_image_size'),
@@ -37,4 +30,4 @@ app = EventApp('blog_scraper',
                # save the image down
                (image.save, 'blog_image_saved'))
 
-app.run()
+app.run(threaded=False)

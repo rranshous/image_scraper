@@ -5,12 +5,20 @@ from base64 import b64encode, b64decode
 
 save_root = abspath('./output')
 proxies = {'http':'127.0.0.1:3128'}
+proxies = {}
 min_image_size = 200
 
-def get_size(image_url):
+def get_size(blog_url, page_url, image_url, _do_work, _stop):
     """
     returns an int representing the images smallest side
     """
+
+    # see if it suggests we do the work
+    do_work, confirm = _do_work(image_url)
+
+    # if it doesn't suggest we do the work, than lets not
+    if not do_work:
+        _stop()
 
     found_size = None
     url_patterns = ['media.tumblr.com','tumblr.com/photo']
@@ -30,25 +38,39 @@ def get_size(image_url):
     print 'get_size: %s => %s' % (image_url, found_size)
 
     if found_size:
+        do_work, confirm(True)
         yield 'image_size', found_size
+    else:
+        do_work, confirm(False)
 
 
-def filter_bad(image_url, image_size):
+def filter_bad(blog_url, page_url, image_url, image_size,
+               _do_work, _stop):
     """
     filter: True for images which interest us
 
     bases decision on image size
     """
 
+    # see if it suggests we do the work
+    do_work, confirm = _do_work(image_url)
+
+    # if it doesn't suggest we do the work, than lets not
+    if not do_work:
+        _stop()
+
     # if it's an avatar image, we don't want it
     if 'avatar' in image_url:
+        do_work, confirm(False)
         yield False
 
     # we dont want small images
     elif image_size and image_size < min_image_size:
+        do_work, confirm(False)
         yield False
 
     else:
+        do_work, confirm(True)
         print 'good image: %s' % image_url
         yield True
 
@@ -58,42 +80,30 @@ def _get_save_path(image_url, image_data):
     return join(save_root, sha1(image_data).hexdigest())
 
 
-def filter_seen(image_url, image_size, _set):
-    """
-    filter: True if we haven't already downloaded image
-
-    based on image url
-    """
-
-    if image_url not in _set('seen_image_urls'):
-        print 'have not seen image url: %s' % image_url
-        _set('seen_image_urls').add(image_url)
-        yield True
-
-    else:
-        print 'have seen image'
-        yield False
-
-    # TODO: check redis for the url
-    #yield image_url in downloaded_images
-
-
 def _get_data(image_url):
     try:
         return requests.get(image_url, proxies=proxies).content
     except Exception:
         return None
 
-def save(blog_url, page_url, image_url, event):
+def save(blog_url, page_url, image_url, event, _do_work):
     """
     saves the image to the disk, if not already present
     """
+
+    # see if it suggests we do the work
+    do_work, confirm = _do_work(image_url)
+
+    # if it doesn't suggest we do the work, than lets not
+    if not do_work:
+        _stop()
 
     # download the image's data
     image_data = _get_data(image_url)
 
     # if there is no image data, we're done
     if not image_data:
+        do_work, confirm(False)
         print 'cant save no image data'
         yield False
 
@@ -109,12 +119,15 @@ def save(blog_url, page_url, image_url, event):
             with open(save_path, 'wb') as fh:
                 fh.write(image_data)
 
+            do_work, confirm(True)
+
             yield dict( blog_url=blog_url,
                         page_url=page_url,
                         save_path=save_path,
                         image_url=image_url )
 
         else:
+            do_work, confirm(False)
             print 'save exists\n'
             print 'no save: %s %s %s' % (image_url, save_path, event)
 
