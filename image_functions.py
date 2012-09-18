@@ -38,7 +38,6 @@ def get_size(blog_url, page_url, image_url, _do_work, _stop):
     print 'get_size: %s => %s' % (image_url, found_size)
 
     if found_size:
-        do_work, confirm(True)
         yield 'image_size', found_size
     else:
         do_work, confirm(False)
@@ -70,7 +69,6 @@ def filter_bad(blog_url, page_url, image_url, image_size,
         yield False
 
     else:
-        do_work, confirm(True)
         print 'good image: %s' % image_url
         yield True
 
@@ -86,13 +84,14 @@ def _get_data(image_url):
     except Exception:
         return None
 
-def save(blog_url, page_url, image_url, event, _do_work):
+def save(blog_url, page_url, image_url, event, _do_work,
+         _stop):
     """
     saves the image to the disk, if not already present
     """
 
     # see if it suggests we do the work
-    do_work, confirm = _do_work(image_url)
+    do_work, confirm = _do_work(blog_url, page_url, image_url)
 
     # if it doesn't suggest we do the work, than lets not
     if not do_work:
@@ -128,7 +127,6 @@ def save(blog_url, page_url, image_url, event, _do_work):
 
         else:
             do_work, confirm(False)
-            print 'save exists\n'
+            print 'save exists'
             print 'no save: %s %s %s' % (image_url, save_path, event)
-
             print 'EVENT: %s' % event

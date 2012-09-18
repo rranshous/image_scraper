@@ -14,7 +14,7 @@ def _get_html(page_url):
         return None
 
 
-def scrape_images(blog_url, page_url, _do_work):
+def scrape_images(blog_url, page_url, _do_work, _stop):
     """
     yields up the src for all images on page
     """
