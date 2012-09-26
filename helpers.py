@@ -4,7 +4,6 @@ import random as r
 def check_do_work(_signal, *objs):
 
     base_strength = 100
-    repeat_chance = 0.05
 
     # pull the signal for each object as well as the signal's
     # signal.
@@ -30,21 +29,28 @@ def check_do_work(_signal, *objs):
     if overall_score >= 0:
         do_work = True
 
-    # introduce some jiggle
-    if not do_work and r.random() < repeat_chance:
-        do_work = True
-
     # we want them to report back to us
     def confirm_work(worked):
         signal_count = len(signals)
         for i, (obj_signal, obj_signal_signal) in enumerate(signals, 1):
             multiplier = i / float(signal_count)
             to_add = int(multiplier * base_strength)
+
+            # if it worked than pump up the signal
             if worked:
                 obj_signal.incr(to_add)
-                obj_signal_signal.incr(to_add)
+
+            # if it didn't work, the signal goes down
             else:
                 obj_signal.decr(to_add)
+
+            # if we were right about whether work
+            # should be done, pump up the signals signal
+            if worked == do_work:
+                obj_signal_signal.incr(to_add)
+
+            # if we were wrong .. down we go
+            else:
                 obj_signal_signal.decr(to_add)
 
     return do_work, confirm_work
