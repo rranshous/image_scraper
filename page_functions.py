@@ -14,33 +14,20 @@ def _get_html(page_url):
         return None
 
 
-def scrape_images(blog_url, page_url, _do_work, _stop):
+def scrape_images(blog_url, page_url, _stop):
     """
     yields up the src for all images on page
     """
-
-    # see if it suggests we do the work
-    do_work, confirm = _do_work(page_url)
-
-    # if it doesn't suggest we do the work, than lets not
-    if not do_work:
-        _stop()
 
     # pull down the html
     page_html = _get_html(page_url)
 
     if not page_html:
 
-        # work did not work out
-        confirm(False)
-
         # skip event
         yield False
 
     else:
-
-        # work was good
-        confirm(True)
 
         # grab our html and yield up the image source urls
         soup = BS(page_html)

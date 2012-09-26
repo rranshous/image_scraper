@@ -9,25 +9,18 @@ import blog_functions as blog
 import page_functions as page
 import image_functions as image
 
+# another process has a timer which puts off
+# random page process requests
+
 app = EventApp('blog_scraper',
 
-               # make sure blog exists
-               ('timer_scrape_blog', blog.verify_url, 'verified_blog_url'),
+               # catch random page pull requests
+               ('timer_scrape_page', page.scrape_images, 'blog_image_found'),
 
-               # fan out the blogs possible pages
-               (blog.fan_out_pages, 'possible_blog_page'),
+               # find blog images which are good
+               (image.filter_bad, 'blog_image_download_candidate_found'),
 
-               # scrape the blog page for it's images
-               (page.scrape_images, 'blog_image'),
-
-               # get the size of the image
-               (image.get_size, 'blog_image_size'),
-
-               # filter the images down to ones which
-               # meet our criteria (size, etc)
-               (image.filter_bad, 'good_blog_image'),
-
-               # save the image down
+               # downoad good images
                (image.save, 'blog_image_saved'))
 
 app.run(threaded=False)

@@ -8,17 +8,11 @@ proxies = {'http':'127.0.0.1:3128'}
 proxies = {}
 min_image_size = 200
 
-def get_size(blog_url, page_url, image_url, _do_work, _stop):
+
+def get_image_size(blog_url, page_url, image_url):
     """
     returns an int representing the images smallest side
     """
-
-    # see if it suggests we do the work
-    do_work, confirm = _do_work(image_url)
-
-    # if it doesn't suggest we do the work, than lets not
-    if not do_work:
-        _stop()
 
     found_size = None
     url_patterns = ['media.tumblr.com','tumblr.com/photo']
@@ -35,37 +29,26 @@ def get_size(blog_url, page_url, image_url, _do_work, _stop):
     # and inspect the image
     # TODO
 
-    print 'get_size: %s => %s' % (image_url, found_size)
-
     if found_size:
-        yield 'image_size', found_size
-    else:
-        do_work, confirm(False)
+        return 'image_size', found_size
 
 
-def filter_bad(blog_url, page_url, image_url, image_size,
-               _do_work, _stop):
+def filter_bad(blog_url, page_url, image_url, _stop):
     """
     filter: True for images which interest us
 
-    bases decision on image size
+    bases decision on image size and url
     """
 
-    # see if it suggests we do the work
-    do_work, confirm = _do_work(image_url)
-
-    # if it doesn't suggest we do the work, than lets not
-    if not do_work:
-        _stop()
+    # get the image's size
+    image_size = get_image_size(blog_url, page_url, image_url)
 
     # if it's an avatar image, we don't want it
     if 'avatar' in image_url:
-        do_work, confirm(False)
         yield False
 
     # we dont want small images
     elif image_size and image_size < min_image_size:
-        do_work, confirm(False)
         yield False
 
     else:
@@ -84,25 +67,17 @@ def _get_data(image_url):
     except Exception:
         return None
 
-def save(blog_url, page_url, image_url, event, _do_work,
-         _stop):
+def save(blog_url, blog_key, page_url, page_number,
+         image_url, _signal):
     """
     saves the image to the disk, if not already present
     """
-
-    # see if it suggests we do the work
-    do_work, confirm = _do_work(blog_url, page_url, image_url)
-
-    # if it doesn't suggest we do the work, than lets not
-    if not do_work:
-        _stop()
 
     # download the image's data
     image_data = _get_data(image_url)
 
     # if there is no image data, we're done
     if not image_data:
-        do_work, confirm(False)
         print 'cant save no image data'
         yield False
 
@@ -118,15 +93,22 @@ def save(blog_url, page_url, image_url, event, _do_work,
             with open(save_path, 'wb') as fh:
                 fh.write(image_data)
 
-            do_work, confirm(True)
-
             yield dict( blog_url=blog_url,
+                        blog_key=blog_key,
+                        page_number=page_number,
                         page_url=page_url,
                         save_path=save_path,
                         image_url=image_url )
 
+            # bomb the page !
+            bomb_size = bomb(_signal, blog_key, page_number)
+
+            # let the world know
+            yield 'cell_bombed', dict( blog_url = blog_url,
+                                       blog_key = blog_key,
+                                       page_url = page_url,
+                                       page_number = page_number,
+                                       bomb_size = bomb_size )
+
         else:
-            do_work, confirm(False)
-            print 'save exists'
             print 'no save: %s %s %s' % (image_url, save_path, event)
-            print 'EVENT: %s' % event
