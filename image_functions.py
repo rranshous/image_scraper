@@ -3,11 +3,12 @@ from hashlib import sha1
 import requests
 from base64 import b64encode, b64decode
 
-save_root = abspath('./output')
-proxies = {'http':'127.0.0.1:3128'}
-proxies = {}
-min_image_size = 200
+from helpers import bomb
 
+save_root = abspath('./output')
+proxies = {}
+proxies = {'http':'127.0.0.1:3128'}
+min_image_size = 200
 
 def get_image_size(blog_url, page_url, image_url):
     """
@@ -47,13 +48,17 @@ def filter_bad(blog_url, page_url, image_url, _stop):
     if 'avatar' in image_url:
         yield False
 
+    # ignore google ad shit
+    if 'google' in image_url:
+        yield False
+
     # we dont want small images
     elif image_size and image_size < min_image_size:
         yield False
 
     else:
         print 'good image: %s' % image_url
-        yield True
+        yield 'image_size', image_size
 
 
 def _get_save_path(image_url, image_data):
@@ -101,14 +106,18 @@ def save(blog_url, blog_key, page_url, page_number,
                         image_url=image_url )
 
             # bomb the page !
-            bomb_size = bomb(_signal, blog_key, page_number)
+            bomb_size, bomb_center, damaged_cells = bomb(_signal,
+                                                          blog_key,
+                                                          page_number)
 
             # let the world know
             yield 'cell_bombed', dict( blog_url = blog_url,
                                        blog_key = blog_key,
                                        page_url = page_url,
                                        page_number = page_number,
-                                       bomb_size = bomb_size )
+                                       bomb_size = bomb_size,
+                                       damaged_cells = damaged_cells,
+                                       bomb_center = bomb_center )
 
         else:
-            print 'no save: %s %s %s' % (image_url, save_path, event)
+            print 'no save: %s %s' % (image_url, save_path)
