@@ -1,6 +1,7 @@
 
 
 from eventapp import EventApp
+import eventapp
 
 # we are going to create a flow which scrapes a blog
 # and downloads images it hasn't downloaded before
@@ -32,5 +33,5 @@ app = EventApp('blog_scraper',
                # consumed cell = page which needs to be scraped
                (page.scrape_images, 'blog_image_found'))
 
-
+eventapp.threads_per_stage = 5
 app.run(threaded=True)
