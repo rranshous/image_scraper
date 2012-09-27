@@ -1,1 +1,0 @@
-/home/robby/coding/eventapp/eventapp.py
