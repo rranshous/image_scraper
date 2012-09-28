@@ -1,0 +1,6 @@
+---
+
+- name: update service git repo to tag
+
+- name: restart service
+

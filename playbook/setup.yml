@@ -1,0 +1,65 @@
+---
+
+- name: install pip
+  action: apt pkg=python-pip state=latest
+
+- name: update apt
+  action: command apt-get update
+
+- name: install base apt packages
+  action: apt pkg=$item state=latest
+  with_items:
+    - gcc
+    - screen
+    - htop
+    - bmon
+    - git
+    - python-virtualenv
+    - python-devel
+    - python-software-properties
+
+#- name: copy ssh keys
+
+- name: download redis 2.6
+  action: command wget http://redis.googlecode.com/files/redis-2.6.0-rc7.tar.gz --output /tmp/redis-2.6.tar.gz
+
+- name: decompress redis 2.6
+  action: command tar xvfz /tmp/redis-2.6.tar.gz
+
+- name: install redis 2.6
+  action: shell cd /tmp/redis-2.6.0-rc7; make; sudo make install;
+
+- name: install redis upstart script
+  action: shell echo "
+      start on runlevel [23]
+      stop on shutdown
+
+      exec /usr/local/bin/redis-server
+
+      respawn" > /etc/init/redis-server.conf
+
+- name: start redis
+  action: command start redis-server
+
+- name: create service directory
+  action: copy dest=/var/services/ state=directory
+
+- name: create virtual env
+  action: command /usr/bin/virtualenv /var/services/image_scraper/env
+
+- name: install requirements
+  action: command /var/services/image_scraper/env/bin/pip install -r /var/services/image_scraper/app/requirements.txt
+
+- name: create output directory
+  action: file dest=/var/services/image_scraper/output state=directory
+
+- name: create service upstart script
+  action: shell echo "
+    start on runlevel [23]
+    stop on shutdown
+    exec /var/services/image_scraper/env/bin/python /var/services/image_scraper/app/scan_sites.py
+
+    respawn" > /etc/init/image-scraper.conf
+
+- name: start service
+  action: command start image-scraper
