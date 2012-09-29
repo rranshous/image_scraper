@@ -12,6 +12,8 @@ proxies = {}
 proxies = {'http':'127.0.0.1:3128'}
 min_image_size = 200
 
+min_recheck_wait = 5
+
 def get_image_size(blog_url, page_url, image_url):
     """
     returns an int representing the images smallest side
@@ -36,12 +38,21 @@ def get_image_size(blog_url, page_url, image_url):
         return 'image_size', found_size
 
 
-def filter_bad(blog_url, page_url, image_url, _stop):
+def filter_bad(blog_url, page_url, image_url, _string, _stop):
     """
     filter: True for images which interest us
 
     bases decision on image size and url
     """
+
+    # if we recently tried to download content from this url
+    # than skip
+    recently_downloaded = _string('%s:recently_downloaded' % image_url)
+    if recently_downloaded.exists:
+        # if the flag exists than we recently downloaded it, skip
+        print 'image was recently downloaded, skipping download [%s]' % image_url
+        yield False
+        _stop()
 
     # get the image's size
     image_size = get_image_size(blog_url, page_url, image_url)
@@ -75,10 +86,19 @@ def _get_data(image_url):
         return None
 
 def save(blog_url, blog_key, page_url, page_number,
-         image_url, _signal):
+         image_url, _signal, _string, _stop):
     """
     saves the image to the disk, if not already present
     """
+
+    # if we recently tried to download content from this url
+    # than skip
+    recently_downloaded = _string('%s:recently_downloaded' % image_url)
+    if recently_downloaded.exists:
+        # if the flag exists than we recently downloaded it, skip
+        print 'image was recently downloaded, skipping download [%s]' % image_url
+        yield False
+        _stop()
 
     # download the image's data
     image_data = _get_data(image_url)
@@ -107,6 +127,7 @@ def save(blog_url, blog_key, page_url, page_number,
                         save_path=save_path,
                         image_url=image_url )
 
+
             # bomb the page !
             bomb_size, bomb_center, damaged_cells = bomb(_signal,
                                                           blog_key,
@@ -123,3 +144,8 @@ def save(blog_url, blog_key, page_url, page_number,
 
         else:
             print 'no save: %s %s' % (image_url, save_path)
+
+    # update that it's been recently downloaded
+    recently_downloaded.value = 1
+    recently_downloaded.let_expire(min_recheck_wait)
+

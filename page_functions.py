@@ -9,6 +9,7 @@ proxies = {}
 proxies = {'http':'127.0.0.1:3128'}
 
 min_image_size = 200
+min_recheck_wait = 5
 
 def _get_html(page_url):
     try:
@@ -17,13 +18,22 @@ def _get_html(page_url):
         return None
 
 
-def scrape_images(blog_url, page_number, page_url, _stop):
+def scrape_images(blog_url, page_number, page_url, _stop, _string):
     """
     yields up the src for all images on page
     """
 
     # pull down the html
     page_html = _get_html(page_url)
+
+    # if we recently tried to download content from this url
+    # than skip
+    recently_downloaded = _string('%s:recently_downloaded' % page_url)
+    if recently_downloaded.exists:
+        # if the flag exists than we recently downloaded it, skip
+        print 'page was recently downloaded, skipping download [%s]' % page_url
+        yield False
+        _stop()
 
     print 'page html [%s]: %s' % (page_url, len(page_html or ''))
 
@@ -35,6 +45,10 @@ def scrape_images(blog_url, page_number, page_url, _stop):
         yield False
 
     else:
+
+        # update that it's been recently downloaded
+        recently_downloaded.value = 1
+        recently_downloaded.let_expire(min_recheck_wait)
 
         # grab our html and yield up the image source urls
         soup = BS(page_html)

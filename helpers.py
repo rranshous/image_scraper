@@ -62,4 +62,8 @@ def bomb(_signal, blog_key, page_number):
 
 
 def generate_page_url(blog_url, page_number):
-    return '%s/page/%s' % (blog_url, page_number)
+    if blog_url.endswith('/'):
+        return '%spage/%s' % (blog_url, page_number)
+    else:
+        return '%s/page/%s' % (blog_url, page_number)
+
