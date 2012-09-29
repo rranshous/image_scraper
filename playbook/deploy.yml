@@ -1,6 +1,37 @@
 ---
+- hosts: all
+  user: robby
+  sudo: True
 
-- name: update service git repo to tag
+  tasks:
+    #- name: update service git repo to tag
+    #  action: git repo=
+    
+    - name: move working dir snapshot
+      action: copy src=/tmp/image_scraper.tar.gz dest=/tmp/image_scraper.tar.gz
+      #ignore_errors: True
+    
+    - name: uncompress working dir snapshot
+      action: command tar xvfz /tmp/image_scraper.tar.gz  -C /var/services/image_scraper/app --no-same-owner
 
-- name: restart service
+    - name: create symlink to output
+      action: file dest=/var/services/image_scraper/app/output src=/var/services/image_scraper/output state=link
+
+    - name: install service requirements
+      action: shell /var/services/image_scraper/env/bin/pip install -r /var/services/image_scraper/app/requirements.txt
+
+    - name: chown service
+      action: command chown -R www-data. /var/services/image_scraper/
+
+    - name: chmod service
+      action: command chmod -R ug+rw /var/services/image_scraper/
+
+    # we have to start and than restart b/c u can't
+    # restart a stopped service
+    - name: start service
+      action: command start image-scraper
+      ignore_errors: True
+
+    - name: restart service
+      action: command restart image-scraper
 

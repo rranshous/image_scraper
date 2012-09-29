@@ -2,10 +2,12 @@ from os.path import abspath, exists, join
 from hashlib import sha1
 import requests
 from base64 import b64encode, b64decode
+from os.path import dirname, abspath, join as path_join
 
 from helpers import bomb
 
-save_root = abspath('./output')
+here = dirname(abspath(__file__))
+save_root = path_join(here, 'output')
 proxies = {}
 proxies = {'http':'127.0.0.1:3128'}
 min_image_size = 200

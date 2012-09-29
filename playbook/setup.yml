@@ -1,65 +1,75 @@
 ---
 
-- name: install pip
-  action: apt pkg=python-pip state=latest
+- hosts: all
+  user: robby
+  sudo: True
 
-- name: update apt
-  action: command apt-get update
+  tasks:
 
-- name: install base apt packages
-  action: apt pkg=$item state=latest
-  with_items:
-    - gcc
-    - screen
-    - htop
-    - bmon
-    - git
-    - python-virtualenv
-    - python-devel
-    - python-software-properties
+    - name: install pip
+      action: apt pkg=python-pip state=latest
 
-#- name: copy ssh keys
+    - name: update apt
+      action: command apt-get update
 
-- name: download redis 2.6
-  action: command wget http://redis.googlecode.com/files/redis-2.6.0-rc7.tar.gz --output /tmp/redis-2.6.tar.gz
+    - name: install base apt packages
+      action: apt pkg=$item state=latest
+      with_items:
+        - gcc
+        - screen
+        - htop
+        - bmon
+        - git
+        - python-virtualenv
+        - python-dev
+        - python-software-properties
+        - squid
 
-- name: decompress redis 2.6
-  action: command tar xvfz /tmp/redis-2.6.tar.gz
+    #- name: copy ssh keys
 
-- name: install redis 2.6
-  action: shell cd /tmp/redis-2.6.0-rc7; make; sudo make install;
+    - name: download redis 2.6
+      action: command wget -O /tmp/redis-2.6.tar.gz http://redis.googlecode.com/files/redis-2.6.0-rc7.tar.gz
 
-- name: install redis upstart script
-  action: shell echo "
-      start on runlevel [23]
-      stop on shutdown
+    - name: decompress redis 2.6
+      action: shell cd /tmp; tar xvfz redis-2.6.tar.gz
 
-      exec /usr/local/bin/redis-server
+    - name: make redis 2.6
+      action: command make /tmp/redis-2.6.0-rc7
 
-      respawn" > /etc/init/redis-server.conf
+    - name: install redis 2.6
+      action: shell cd /tmp/redis-2.6.0-rc7; make; sudo make install;
 
-- name: start redis
-  action: command start redis-server
+    - name: install redis upstart script
+      action: shell echo "start on runlevel [23]\nstop on shutdown\nexec /usr/local/bin/redis-server\nrespawn" > /etc/init/redis-server.conf
 
-- name: create service directory
-  action: copy dest=/var/services/ state=directory
+    - name: start redis
+      action: command start redis-server
+      ignore_errors: True
 
-- name: create virtual env
-  action: command /usr/bin/virtualenv /var/services/image_scraper/env
+    - name: create service directory
+      action: file dest=/var/services/ state=directory
 
-- name: install requirements
-  action: command /var/services/image_scraper/env/bin/pip install -r /var/services/image_scraper/app/requirements.txt
+    - name: create virtual env
+      action: command /usr/bin/virtualenv /var/services/image_scraper/env
+      ignore_errors: True
 
-- name: create output directory
-  action: file dest=/var/services/image_scraper/output state=directory
+    - name: create output directory
+      action: file dest=/var/services/image_scraper/output state=directory
 
-- name: create service upstart script
-  action: shell echo "
-    start on runlevel [23]
-    stop on shutdown
-    exec /var/services/image_scraper/env/bin/python /var/services/image_scraper/app/scan_sites.py
+    - name: create app directory
+      action: file dest=/var/services/image_scraper/app state=directory
 
-    respawn" > /etc/init/image-scraper.conf
+    - name: create log
+      action: command touch /var/log/image-scraper.log
 
-- name: start service
-  action: command start image-scraper
+    - name: chown log
+      action: command chown www-data. /var/log/image-scraper.log
+
+    - name: chmod log
+      action: command chmod ug+rw /var/log/image-scraper.log
+
+    - name: create service upstart script
+      action: shell echo "start on runlevel [23]\nstop on shutdown\nexec /var/services/image_scraper/env/bin/python /var/services/image_scraper/app/scrape_flow.py >> /var/log/image-scraper.log\nrespawn" > /etc/init/image-scraper.conf
+
+    #- name: start service
+    #  action: command start image-scraper
