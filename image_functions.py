@@ -12,7 +12,7 @@ proxies = {}
 proxies = {'http':'127.0.0.1:3128'}
 min_image_size = 200
 
-min_recheck_wait = 5
+min_recheck_wait = 60 * 10
 
 def get_image_size(blog_url, page_url, image_url):
     """
