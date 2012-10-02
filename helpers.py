@@ -1,5 +1,9 @@
 import random as r
+from hashlib import sha1
+import os.path
+import cloudfiles
 
+here = os.path.dirname(os.path.abspath(__file__))
 # totally random size
 bomb_size = 2
 max_cell_damage = bomb_size * 2 + 1
@@ -66,4 +70,34 @@ def generate_page_url(blog_url, page_number):
         return '%spage/%s' % (blog_url, page_number)
     else:
         return '%s/page/%s' % (blog_url, page_number)
+
+def upload_image(image_data, sha1_hash=None):
+    """
+    uploads the image to rackspace cloud files
+    """
+
+    path = os.path.join(here, 'rackspace_creds.txt')
+    with open(path, 'r') as fh:
+        creds = [x.strip() for x in fh.readlines() if x.strip()]
+
+    # clac the sha1 if it's not given
+    if not sha1_hash:
+        sha1_hash = sha1(image_data).hexdigest()
+
+    conn = cloudfiles.get_connection(*creds, servicenet=True)
+    container = conn.get_container('scrape_images')
+
+    try:
+        # check if it exists, don't want to re-upload
+        obj = container.get_object(sha1_hash)
+
+        # if it exists return False
+        return False
+    except:
+
+        # it doesn't exist yet
+        obj = container.create_object(sha1_hash)
+        obj.content_type = 'image'
+        obj.write(image_data)
+        return sha1_hash
 

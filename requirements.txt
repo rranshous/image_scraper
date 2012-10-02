@@ -3,6 +3,7 @@ ipython
 requests
 beautifulsoup4
 redis_natives
+decorator
 
 https://github.com/andymccurdy/redis-py/tarball/master
 configsmash

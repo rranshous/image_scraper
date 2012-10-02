@@ -1,5 +1,6 @@
 from os.path import abspath, dirname, join as path_join
 from casconfig import CasConfig
+import helpers
 import sys
 production = 'production' in sys.argv
 
@@ -34,6 +35,7 @@ exit
 #   blog_url, blog_key, page_url, page_number
 
 app = EventApp('blog_scraper', config,
+               { 'upload_image': helpers.upload_image },
 
                # catch random page pull requests
                ('timer_scrape_page', page.scrape_images, 'blog_image_found'),
@@ -50,7 +52,8 @@ app = EventApp('blog_scraper', config,
                # consumed cell = page which needs to be scraped
                (page.scrape_images, 'blog_image_found'))
 
-eventapp.threads_per_stage = 10
-eventapp.processes_per_stage = 2
 
-app.run(threaded=False, multiprocess=True)
+eventapp.threads_per_stage = 10
+eventapp.processes_per_stage = 5
+
+app.run(threaded=True, multiprocess=True)

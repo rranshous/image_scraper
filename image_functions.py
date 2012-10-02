@@ -12,8 +12,8 @@ proxies = {}
 proxies = {'http':'127.0.0.1:3128'}
 min_image_size = 200
 
-# wait a min of 2 hours before re-checking the image
-min_recheck_wait = 60 * 60 * 2
+# wait a min of 24 hours before re-checking the image
+min_recheck_wait = 60 * 60 * 24
 
 def get_image_size(blog_url, page_url, image_url):
     """
@@ -87,7 +87,7 @@ def _get_data(image_url):
         return None
 
 def save(blog_url, blog_key, page_url, page_number,
-         image_url, _signal, _string, _stop):
+         image_url, upload_image, _signal, _string, _stop):
     """
     saves the image to the disk, if not already present
     """
@@ -111,21 +111,19 @@ def save(blog_url, blog_key, page_url, page_number,
 
     else:
 
-        # figure out where on the disk to save, abspath
-        save_path = _get_save_path(image_url, image_data)
+        # upload our image
+        uploaded = upload_image(image_data)
 
-        # don't bother re-saving
-        if not exists(save_path):
+        # if we were uploaded than put off our saved event
+        if uploaded is not False:
 
-            print 'save: %s %s' % (image_url, save_path)
-            with open(save_path, 'wb') as fh:
-                fh.write(image_data)
+            print 'saved: %s' % uploaded
 
             yield dict( blog_url=blog_url,
                         blog_key=blog_key,
                         page_number=page_number,
                         page_url=page_url,
-                        save_path=save_path,
+                        save_path=uploaded,
                         image_url=image_url )
 
 
@@ -144,7 +142,7 @@ def save(blog_url, blog_key, page_url, page_number,
                                        bomb_center = bomb_center )
 
         else:
-            print 'no save: %s %s' % (image_url, save_path)
+            print 'no save: %s' % (image_url)
 
     # update that it's been recently downloaded
     recently_downloaded.value = 1

@@ -3,3 +3,4 @@
 *.rdb
 /output
 /sites.txt
+/rackspace_creds.txt
