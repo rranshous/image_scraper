@@ -1,4 +1,7 @@
-
+from os.path import abspath, dirname, join as path_join
+from casconfig import CasConfig
+import sys
+production = 'production' in sys.argv
 
 from eventapp import EventApp
 import eventapp
@@ -10,13 +13,27 @@ import blog_functions as blog
 import page_functions as page
 import image_functions as image
 
+# read in our config
+here = dirname(abspath(__file__))
+config_path = path_join(here, 'config')
+config_type = 'production' if production else 'development'
+print 'reading config [%s]: %s' % (config_type, config_path)
+config = CasConfig(config_path)
+config.setup(config_type)
+print
+print 'config:'
+print config
+print
+
+exit
+
 # another process has a timer which puts off
 # random page process requests
 
 # the timer_scrape_page event needs to have:
 #   blog_url, blog_key, page_url, page_number
 
-app = EventApp('blog_scraper',
+app = EventApp('blog_scraper', config,
 
                # catch random page pull requests
                ('timer_scrape_page', page.scrape_images, 'blog_image_found'),
@@ -33,7 +50,7 @@ app = EventApp('blog_scraper',
                # consumed cell = page which needs to be scraped
                (page.scrape_images, 'blog_image_found'))
 
-eventapp.threads_per_stage = 10
-eventapp.processes_per_stage = 1
+eventapp.threads_per_stage = 2
+eventapp.processes_per_stage = 2
 
 app.run(threaded=False, multiprocess=True)
