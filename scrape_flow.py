@@ -50,7 +50,7 @@ app = EventApp('blog_scraper', config,
                # consumed cell = page which needs to be scraped
                (page.scrape_images, 'blog_image_found'))
 
-eventapp.threads_per_stage = 2
+eventapp.threads_per_stage = 4
 eventapp.processes_per_stage = 2
 
 app.run(threaded=False, multiprocess=True)

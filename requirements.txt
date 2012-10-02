@@ -2,4 +2,5 @@ requests
 beautifulsoup4
 redis_natives
 https://github.com/andymccurdy/redis-py/tarball/master
-casconfig==0.0.3
+configsmash
+casconfig
