@@ -9,7 +9,8 @@ proxies = {}
 proxies = {'http':'127.0.0.1:3128'}
 
 min_image_size = 200
-min_recheck_wait = 60 * 10
+# wait a min of 2 hours before re-checking the page
+min_recheck_wait = 60 * 60 * 2
 
 def _get_html(page_url):
     try:
