@@ -1,6 +1,3 @@
-[submodule "revent"]
-	path = revent
-	url = git@github.com:altalang/Revent.git
 [submodule "eventapp"]
 	path = eventapp
 	url = https://github.com/rranshous/eventapp
