@@ -53,7 +53,7 @@ app = EventApp('blog_scraper', config,
                (page.scrape_images, 'blog_image_found'))
 
 
-eventapp.threads_per_stage = 10
-eventapp.processes_per_stage = 5
+eventapp.threads_per_stage = 2
+eventapp.processes_per_stage = 2
 
 app.run(threaded=True, multiprocess=True)
