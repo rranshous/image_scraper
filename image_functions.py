@@ -4,7 +4,7 @@ import requests
 from base64 import b64encode, b64decode
 from os.path import dirname, abspath, join as path_join
 
-from helpers import bomb
+from helpers import bomb, short_hash as sh
 
 here = dirname(abspath(__file__))
 save_root = path_join(here, 'output')
@@ -12,8 +12,10 @@ proxies = {}
 proxies = {'http':'127.0.0.1:3128'}
 min_image_size = 200
 
-# wait a min of 24 hours before re-checking the image
-min_recheck_wait = 60 * 60 * 24
+# wait a min of 10 hours before re-checking the image
+# the wait is based on url and the content behind a url should
+# not be changing
+min_recheck_wait = 60 * 60 * 10
 
 def get_image_size(blog_url, page_url, image_url):
     """
@@ -94,7 +96,7 @@ def save(blog_url, blog_key, page_url, page_number,
 
     # if we recently tried to download content from this url
     # than skip
-    recently_downloaded = _string('%s:recently_downloaded' % image_url)
+    recently_downloaded = _string('%s:recently_downloaded' % sh(image_url))
     if recently_downloaded.exists:
         # if the flag exists than we recently downloaded it, skip
         print 'image was recently downloaded, skipping download [%s]' % image_url
@@ -112,20 +114,21 @@ def save(blog_url, blog_key, page_url, page_number,
     else:
 
         # upload our image
-        uploaded = upload_image(image_data)
+        image_hash = upload_image(image_data)
 
-        # if we were uploaded than put off our saved event
-        if uploaded is not False:
+        # did we upload the image ?
+        if image_hash is not False:
 
-            print 'saved: %s' % uploaded
+            print 'saved: %s' % image_hash
 
+            # if we were uploaded than put off our saved event
             yield dict( blog_url=blog_url,
                         blog_key=blog_key,
                         page_number=page_number,
                         page_url=page_url,
                         save_path=uploaded,
+                        image_hash=image_hash,
                         image_url=image_url )
-
 
             # bomb the page !
             bomb_size, bomb_center, damaged_cells = bomb(_signal,

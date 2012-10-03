@@ -3,7 +3,8 @@ import requests
 from itertools import imap
 from operator import itemgetter
 
-from helpers import CellDamage, max_cell_damage, generate_page_url
+from helpers import CellDamage, max_cell_damage, generate_page_url, \
+                    short_hash as sh
 
 proxies = {}
 proxies = {'http':'127.0.0.1:3128'}
@@ -29,7 +30,7 @@ def scrape_images(blog_url, page_number, page_url, _stop, _string):
 
     # if we recently tried to download content from this url
     # than skip
-    recently_downloaded = _string('%s:recently_downloaded' % page_url)
+    recently_downloaded = _string('%s:recently_downloaded' % sh(page_url))
     if recently_downloaded.exists:
         # if the flag exists than we recently downloaded it, skip
         print 'page was recently downloaded, skipping download [%s]' % page_url

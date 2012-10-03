@@ -71,7 +71,7 @@ def generate_page_url(blog_url, page_number):
     else:
         return '%s/page/%s' % (blog_url, page_number)
 
-def upload_image(image_data, sha1_hash=None):
+def upload_image(image_data):
     """
     uploads the image to rackspace cloud files
     """
@@ -80,24 +80,33 @@ def upload_image(image_data, sha1_hash=None):
     with open(path, 'r') as fh:
         creds = [x.strip() for x in fh.readlines() if x.strip()]
 
-    # clac the sha1 if it's not given
-    if not sha1_hash:
-        sha1_hash = sha1(image_data).hexdigest()
+    image_hash = short_hash(image_data)
 
     conn = cloudfiles.get_connection(*creds, servicenet=True)
     container = conn.get_container('scrape_images')
 
     try:
         # check if it exists, don't want to re-upload
-        obj = container.get_object(sha1_hash)
+        obj = container.get_object(image_hash)
 
         # if it exists return False
         return False
     except:
 
         # it doesn't exist yet
-        obj = container.create_object(sha1_hash)
+        obj = container.create_object(image_hash)
         obj.content_type = 'image'
         obj.write(image_data)
-        return sha1_hash
+        return image_hash
+
+
+def short_hash(data):
+    """
+    creates a short sha based hash for given data
+    """
+
+    digest = sha1()
+    digest.update(data)
+    key = hex(int(digest.hexdigest(), 16) % (2**41))[2:-1]
+    return key
 
