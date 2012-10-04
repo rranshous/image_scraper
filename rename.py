@@ -11,7 +11,6 @@ with open(path, 'r') as fh:
     creds = [x.strip() for x in fh.readlines() if x.strip()]
 
 prefix = sys.argv[1]
-print 'PREFIX: %s' % prefix
 if prefix == 'count':
     count = 0
     prefix = None
@@ -26,21 +25,18 @@ last_name = None
 last_last_name = 0
 obj = 1
 while obj:
-    print 'last_name: %s' % last_name
     if last_name == last_last_name:
         break
     last_last_name = last_name
     for obj in container.get_objects(prefix=prefix, marker=last_name):
         try:
             last_name = obj.name
-            if len(obj.name) > 11:
 
-                if count != -1:
-                    #print obj.name
-                    if count % 1000 == 0:
-                        print 'COUNT: %s' % count
-                    count += 1
-                    continue
+            if count != -1:
+                count += 1
+                continue
+
+            if len(obj.name) > 11:
 
                 new_hash = short_hash(obj.read())
                 print 'copying: %s => %s' % (obj.name, new_hash)
@@ -53,5 +49,5 @@ while obj:
             print 'EXCEPTION: %s' % ex
 
 
-
-print 'FINAL COUNT: %s' % count
+if count != -1:
+    print 'FINAL COUNT: %s' % count
