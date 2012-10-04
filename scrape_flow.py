@@ -2,7 +2,8 @@ from os.path import abspath, dirname, join as path_join
 from casconfig import CasConfig
 import helpers
 import sys
-production = 'production' in sys.argv
+debug = 'debug' in sys.argv
+print 'debug: %s' % debug
 
 from eventapp import EventApp
 import eventapp
@@ -17,12 +18,13 @@ import image_functions as image
 # read in our config
 here = dirname(abspath(__file__))
 config_path = path_join(here, 'config')
-config_type = 'production' if production else 'development'
+config_type = 'production' if not debug else 'development'
 
 print 'reading config [%s]: %s' % (config_type, config_path)
 
 config = CasConfig(config_path)
 config.setup(config_type)
+print 'config: %s' % config
 
 # another process has a timer which puts off
 # random page process requests
@@ -49,7 +51,9 @@ app = EventApp('blog_scraper', config,
                (page.scrape_images, 'blog_image_found'))
 
 
-eventapp.threads_per_stage = 1
-eventapp.forks = 1
+eventapp.threads_per_stage = config.get('knobs').get('threads_per_stage')
+eventapp.forks = config.get('knobs').get('forks')
+threaded = config.get('knobs').get('threaded')
+multiprocess = config.get('knobs').get('multiprocess')
 
 app.run(threaded=True, multiprocess=False)
