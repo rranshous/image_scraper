@@ -126,7 +126,7 @@ def save(blog_url, blog_key, page_url, page_number,
                         blog_key=blog_key,
                         page_number=page_number,
                         page_url=page_url,
-                        save_path=uploaded,
+                        save_path=image_hash,
                         image_hash=image_hash,
                         image_url=image_url )
 

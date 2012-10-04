@@ -18,15 +18,11 @@ import image_functions as image
 here = dirname(abspath(__file__))
 config_path = path_join(here, 'config')
 config_type = 'production' if production else 'development'
+
 print 'reading config [%s]: %s' % (config_type, config_path)
+
 config = CasConfig(config_path)
 config.setup(config_type)
-print
-print 'config:'
-print config
-print
-
-exit
 
 # another process has a timer which puts off
 # random page process requests
@@ -53,7 +49,7 @@ app = EventApp('blog_scraper', config,
                (page.scrape_images, 'blog_image_found'))
 
 
-eventapp.threads_per_stage = 2
-eventapp.processes_per_stage = 2
+eventapp.threads_per_stage = 1
+eventapp.forks = 1
 
-app.run(threaded=True, multiprocess=True)
+app.run(threaded=True, multiprocess=False)
