@@ -11,9 +11,9 @@ import eventapp
 # we are going to create a flow which scrapes a blog
 # and downloads images it hasn't downloaded before
 
-import blog_functions as blog
 import page_functions as page
 import image_functions as image
+import web_functions as web
 
 # read in our config
 here = dirname(abspath(__file__))
@@ -33,7 +33,13 @@ print 'config: %s' % config
 #   blog_url, blog_key, page_url, page_number
 
 app = EventApp('blog_scraper', config,
-               { 'upload_image': helpers.upload_image },
+
+               { 'upload_image': helpers.upload_image,
+                 'get_html': web.get_html,
+                 'get_data': web.get_data,
+                 'save_new_image': helpers.upload_image,
+                 'get_saved_image': helpers.retrieve_image
+               }
 
                # catch random page pull requests
                ('timer_scrape_page', page.scrape_images, 'blog_image_found'),

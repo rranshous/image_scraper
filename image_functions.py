@@ -1,21 +1,11 @@
-from os.path import abspath, exists, join
-from hashlib import sha1
-import requests
-from base64 import b64encode, b64decode
-from os.path import dirname, abspath, join as path_join
-
 from helpers import bomb, short_hash as sh
-
-here = dirname(abspath(__file__))
-save_root = path_join(here, 'output')
-proxies = {}
-proxies = {'http':'127.0.0.1:3128'}
-min_image_size = 200
 
 # wait a min of 30 days before re-checking the image
 # the wait is based on url and the content behind a url should
 # not be changing
 min_recheck_wait = 60 * 60 * 24 * 30
+# never time out
+min_recheck_wait = None
 
 def get_image_size(blog_url, page_url, image_url):
     """
@@ -41,7 +31,8 @@ def get_image_size(blog_url, page_url, image_url):
         return 'image_size', found_size
 
 
-def filter_bad(blog_url, page_url, image_url, _string, _stop):
+def filter_bad(blog_url, page_url, image_url, _string, _stop,
+               config):
     """
     filter: True for images which interest us
 
@@ -59,6 +50,7 @@ def filter_bad(blog_url, page_url, image_url, _string, _stop):
 
     # get the image's size
     image_size = get_image_size(blog_url, page_url, image_url)
+    min_image_size = config.get('image_details', {}).get('min_image_size')
 
     # if it's an avatar image, we don't want it
     if 'avatar' in image_url:
@@ -66,6 +58,10 @@ def filter_bad(blog_url, page_url, image_url, _string, _stop):
 
     # ignore google ad shit
     if 'google' in image_url:
+        yield False
+
+    # image must have size
+    elif not image_size:
         yield False
 
     # we dont want small images
@@ -77,19 +73,9 @@ def filter_bad(blog_url, page_url, image_url, _string, _stop):
         yield 'image_size', image_size
 
 
-def _get_save_path(image_url, image_data):
-    # save our images under it's sha
-    return join(save_root, sha1(image_data).hexdigest())
-
-
-def _get_data(image_url):
-    try:
-        return requests.get(image_url, proxies=proxies).content
-    except Exception:
-        return None
-
 def save(blog_url, blog_key, page_url, page_number,
-         image_url, upload_image, _signal, _string, _stop):
+         image_url, upload_image, get_data,
+         _signal, _string, _stop):
     """
     saves the image to the disk, if not already present
     """
@@ -104,7 +90,7 @@ def save(blog_url, blog_key, page_url, page_number,
         _stop()
 
     # download the image's data
-    image_data = _get_data(image_url)
+    image_data = get_data(image_url)
 
     # if there is no image data, we're done
     if not image_data:
@@ -149,5 +135,6 @@ def save(blog_url, blog_key, page_url, page_number,
 
     # update that it's been recently downloaded
     recently_downloaded.value = 1
-    recently_downloaded.let_expire(min_recheck_wait)
+    if min_recheck_wait:
+        recently_downloaded.let_expire(min_recheck_wait)
 
