@@ -1,4 +1,3 @@
-import random as r
 from hashlib import sha1
 import os.path
 import cloudfiles
@@ -71,19 +70,22 @@ def generate_page_url(blog_url, page_number):
     else:
         return '%s/page/%s' % (blog_url, page_number)
 
+def _get_image_container():
+    path = os.path.join(here, 'rackspace_creds.txt')
+    with open(path, 'r') as fh:
+        creds = [x.strip() for x in fh.readlines() if x.strip()]
+
+    conn = cloudfiles.get_connection(*creds, servicenet=True)
+    container = conn.get_container('scrape_images')
+    return container
+
 def upload_image(image_data):
     """
     uploads the image to rackspace cloud files
     """
 
-    path = os.path.join(here, 'rackspace_creds.txt')
-    with open(path, 'r') as fh:
-        creds = [x.strip() for x in fh.readlines() if x.strip()]
-
     image_hash = short_hash(image_data)
-
-    conn = cloudfiles.get_connection(*creds, servicenet=True)
-    container = conn.get_container('scrape_images')
+    container = _get_image_container()
 
     try:
         # check if it exists, don't want to re-upload
@@ -99,6 +101,28 @@ def upload_image(image_data):
         obj.write(image_data)
         return image_hash
 
+def retrieve_image(img_short_hash, retries=1):
+    """
+    retrieves an image from rackspace cloud files by short hash
+    """
+
+    path = os.path.join(here, 'rackspace_creds.txt')
+    with open(path, 'r') as fh:
+        creds = [x.strip() for x in fh.readlines() if x.strip()]
+
+    conn = cloudfiles.get_connection(*creds, servicenet=True)
+    container = conn.get_container('scrape_images')
+
+    for i in xrange(retries+1):
+        try:
+            # check if it exists, don't want to re-upload
+            obj = container.get_object(img_short_hash)
+            return obj
+
+        except:
+            # if this is the last re-try, just raise
+            if i == retries - 1:
+                raise
 
 def short_hash(data):
     """

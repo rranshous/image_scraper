@@ -1,32 +1,20 @@
 from bs4 import BeautifulSoup as BS
-import requests
+import time
 from itertools import imap
 from operator import itemgetter
 
 from helpers import CellDamage, max_cell_damage, generate_page_url, \
                     short_hash as sh
 
-proxies = {}
-proxies = {'http':'127.0.0.1:3128'}
 
-min_image_size = 200
-# wait a min of 2 hours before re-checking the page
-min_recheck_wait = 60 * 60 * 2
-
-def _get_html(page_url):
-    try:
-        return requests.get(page_url, proxies=proxies).text
-    except:
-        return None
-
-
-def scrape_images(blog_url, page_number, page_url, _stop, _string):
+def scrape_images(blog_url, page_number, page_url, _stop, _string,
+                  get_html, config):
     """
     yields up the src for all images on page
     """
 
     # pull down the html
-    page_html = _get_html(page_url)
+    page_html = get_html(page_url)
 
     # if we recently tried to download content from this url
     # than skip
@@ -50,12 +38,14 @@ def scrape_images(blog_url, page_number, page_url, _stop, _string):
 
         # update that it's been recently downloaded
         recently_downloaded.value = 1
+        min_recheck_wait = config.get('page_details', {}).get('min_recheck_wait')
         recently_downloaded.let_expire(min_recheck_wait)
 
         # grab our html and yield up the image source urls
         soup = BS(page_html)
         for src in imap(itemgetter('src'), soup.find_all('img')):
-            yield 'image_url', src
+            yield ( ('image_url', src),
+                    ('scrape_time', time.time()) )
 
 def investigate_bombed_cells(blog_url, blog_key, page_number,
                              bomb_center, damaged_cells, _signal):
