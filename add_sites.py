@@ -13,6 +13,8 @@ if len(sys.argv) > 1:
     top = int(sys.argv[1])
     print 'top: %s' % top
 
+print 'ADDING SITES: %s' % top
+
 for i in xrange(0, random.randint(0,top), random.randint(5,20)):
 
     for url in urls:
@@ -23,7 +25,7 @@ for i in xrange(0, random.randint(0,top), random.randint(5,20)):
         if not url.endswith('/'):
             url+='/'
 
-        print '%s\t%s' % (url, i)
+        print 'ADDED: %s\t%s' % (url, i)
 
         rc.fire('timer_scrape_page',
                 dict(blog_url=url,
