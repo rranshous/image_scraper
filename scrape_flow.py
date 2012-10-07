@@ -39,7 +39,7 @@ app = EventApp('blog_scraper', config,
                  'get_data': web.get_data,
                  'save_new_image': helpers.upload_image,
                  'get_saved_image': helpers.retrieve_image
-               }
+               },
 
                # catch random page pull requests
                ('timer_scrape_page', page.scrape_images, 'blog_image_found'),

@@ -75,7 +75,7 @@ def _get_image_container():
     with open(path, 'r') as fh:
         creds = [x.strip() for x in fh.readlines() if x.strip()]
 
-    conn = cloudfiles.get_connection(*creds, servicenet=True)
+    conn = cloudfiles.get_connection(*creds)#, servicenet=True)
     container = conn.get_container('scrape_images')
     return container
 
