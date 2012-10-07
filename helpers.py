@@ -70,22 +70,24 @@ def generate_page_url(blog_url, page_number):
     else:
         return '%s/page/%s' % (blog_url, page_number)
 
-def _get_image_container():
+def _get_image_container(servicenet=False):
     path = os.path.join(here, 'rackspace_creds.txt')
     with open(path, 'r') as fh:
         creds = [x.strip() for x in fh.readlines() if x.strip()]
 
-    conn = cloudfiles.get_connection(*creds)#, servicenet=True)
+    conn = cloudfiles.get_connection(*creds,
+                                     servicenet=servicenet)
     container = conn.get_container('scrape_images')
     return container
 
-def upload_image(image_data):
+def upload_image(image_data, config):
     """
     uploads the image to rackspace cloud files
     """
 
     image_hash = short_hash(image_data)
-    container = _get_image_container()
+    servicenet = config.get('cloudfiles', {}).get('servicenet')
+    container = _get_image_container(servicenet)
 
     try:
         # check if it exists, don't want to re-upload
@@ -93,6 +95,7 @@ def upload_image(image_data):
 
         # if it exists return False
         return False
+
     except:
 
         # it doesn't exist yet
@@ -106,12 +109,8 @@ def retrieve_image(img_short_hash, retries=1):
     retrieves an image from rackspace cloud files by short hash
     """
 
-    path = os.path.join(here, 'rackspace_creds.txt')
-    with open(path, 'r') as fh:
-        creds = [x.strip() for x in fh.readlines() if x.strip()]
-
-    conn = cloudfiles.get_connection(*creds, servicenet=True)
-    container = conn.get_container('scrape_images')
+    servicenet = config.get('cloudfiles', {}).get('servicenet')
+    container = _get_image_container(servicenet)
 
     for i in xrange(retries+1):
         try:

@@ -18,7 +18,9 @@ def scrape_images(blog_url, page_number, page_url, _stop, _string,
 
     # if we recently tried to download content from this url
     # than skip
-    recently_downloaded = _string('%s:recently_downloaded' % sh(page_url))
+    recently_downloaded = _string('%s:recently_downloaded' %
+                                  sh(page_url))
+
     if recently_downloaded.exists:
         # if the flag exists than we recently downloaded it, skip
         print 'page was recently downloaded, skipping download [%s]' % page_url
@@ -39,7 +41,8 @@ def scrape_images(blog_url, page_number, page_url, _stop, _string,
         # update that it's been recently downloaded
         recently_downloaded.value = 1
         min_recheck_wait = config.get('page_details', {}).get('min_recheck_wait')
-        recently_downloaded.let_expire(min_recheck_wait)
+        if min_recheck_wait:
+            recently_downloaded.let_expire(min_recheck_wait)
 
         # grab our html and yield up the image source urls
         soup = BS(page_html)
