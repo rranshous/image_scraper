@@ -1,6 +1,6 @@
 *.swp
 *.pyc
 *.rdb
-/output
-/sites.txt
-/rackspace_creds.txt
+output
+sites.txt
+rackspace_creds.txt

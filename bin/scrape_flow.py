@@ -1,8 +1,10 @@
 from os.path import abspath, dirname, join as path_join
 import sys
+here = dirname(abspath(__file__))
 
 # update our python path to be at root of project
-# TODO
+base = dirname(here)
+sys.path.insert(0, base)
 
 # we default to production
 debug = 'debug' in sys.argv
@@ -21,14 +23,20 @@ import handlers.image as image
 
 # read in our config
 from casconfig import CasConfig
-here = dirname(abspath(__file__))
-config_path = path_join(here, 'config')
+config_path = path_join(base, 'config')
 config_type = 'production' if not debug else 'development'
 print 'reading config [%s]: %s' % (config_type, config_path)
 config = CasConfig(config_path)
 config.setup(config_type)
 print 'config: %s' % config
 
+# import our Mongo backed Image obj
+import objects.image
+
+# update our Image object to use the correct DB
+mongo_config = config.get('mongodb')
+objects.image.Meta.host = mongo_config.get('host')
+objects.image.Meta.port = mongo_config.get('port')
 
 # set up our event app
 app = EventApp('blog_scraper', config,
@@ -44,7 +52,7 @@ app = EventApp('blog_scraper', config,
                  'CellDamage': helpers.CellDamage,
                  'generate_page_url': helpers.generate_page_url,
                  'image_size_from_url': helpers.image_size_from_url,
-                 'Image': image.Image
+                 'Image': objects.image.Image
                },
 
                ## handlers

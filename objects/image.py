@@ -4,6 +4,8 @@ class Image(Model):
     class Meta:
         database = "scrape_images"
         collection = "images"
+        host = None
+        port = None
 
         indices = (
             Index("url"),
@@ -12,28 +14,35 @@ class Image(Model):
             Index("short_hash")
         )
 
+    def __getattr__(self, attr):
+        """
+        over write getattr to return None when
+        we try and get the value of a non-existant
+        attr rather than throwing an exception
+        """
+
+        try:
+            return super(Image, self).__getattr__(attr)
+        except AttributeError:
+            return None
 
     @classmethod
-    def get(cls, url):
-        """
-        returns the Image matching given URL or None
-        """
-        return cls.collection.find_one({'url':url})
+    def get_one(cls, **kwargs):
+        return cls.collection.find_one(kwargs)
 
     @classmethod
-    def get_or_create(cls, url):
+    def get_or_create(cls, **kwargs):
         """
         returns the Image matched by it's URL
         or creates a new Image and sets URL
         """
 
-        obj = cls.collection.find_one({'url':url})
+        obj = cls.collection.find_one(kwargs)
         if not obj:
-            obj = cls()
-            obj.url = url
+            obj = cls(**kwargs)
         return obj
 
-    def set_data(self, data):
+    def set_data(self, data, short_hash, upload_image):
         """
         stores the given data
 
@@ -60,7 +69,7 @@ class Image(Model):
         return storage_key
 
 
-    def get_data(self, data):
+    def get_data(self, data, retrieve_image):
         """
         gets the image's data
         """
