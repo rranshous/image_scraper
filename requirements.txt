@@ -9,3 +9,5 @@ https://github.com/andymccurdy/redis-py/tarball/master
 configsmash
 casconfig
 https://github.com/rackspace/python-cloudfiles/tarball/master
+pymongo
+minimongo

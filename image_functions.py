@@ -1,11 +1,19 @@
-from helpers import bomb, short_hash as sh
+from minimongo import Model, Index
 
-# wait a min of 30 days before re-checking the image
-# the wait is based on url and the content behind a url should
-# not be changing
-min_recheck_wait = 60 * 60 * 24 * 30
-# never time out
-min_recheck_wait = None
+class Image(Model):
+    class Meta:
+        # Here, we specify the database and collection names.
+        # A connection to your DB is automatically created.
+        database = "scrape_images"
+        collection = "images"
+
+        # Now, we programatically declare what indices we want.
+        # The arguments to the Index constructor are identical to
+        # the args to pymongo"s ensure_index function.
+        indices = (
+            Index("url"),
+            Index("short_hash")
+        )
 
 def get_image_size(blog_url, page_url, image_url):
     """
@@ -32,7 +40,7 @@ def get_image_size(blog_url, page_url, image_url):
 
 
 def filter_bad(blog_url, page_url, image_url, _string, _stop,
-               config):
+               Image, config):
     """
     filter: True for images which interest us
 
@@ -51,6 +59,13 @@ def filter_bad(blog_url, page_url, image_url, _string, _stop,
     # get the image's size
     image_size = get_image_size(blog_url, page_url, image_url)
     min_image_size = config.get('image_details', {}).get('min_image_size')
+
+    # see if we already have it's record in mongo
+    image = Image.find_one({ 'image_url': image_url })
+
+    # if we've already downloaded the image, skip it
+    if image.downloaded:
+        yield False
 
     # if it's an avatar image, we don't want it
     if 'avatar' in image_url:
@@ -74,7 +89,7 @@ def filter_bad(blog_url, page_url, image_url, _string, _stop,
 
 
 def save(blog_url, blog_key, page_url, page_number,
-         image_url, upload_image, get_data,
+         image_url, upload_image, get_data, bomb,
          _signal, _string, _stop):
     """
     saves the image to the disk, if not already present

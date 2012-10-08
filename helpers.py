@@ -2,7 +2,6 @@ from hashlib import sha1
 import os.path
 import cloudfiles
 
-here = os.path.dirname(os.path.abspath(__file__))
 # totally random size
 bomb_size = 2
 max_cell_damage = bomb_size * 2 + 1
@@ -71,6 +70,7 @@ def generate_page_url(blog_url, page_number):
         return '%s/page/%s' % (blog_url, page_number)
 
 def _get_image_container(servicenet=False):
+    here = os.path.dirname(os.path.abspath(__file__))
     path = os.path.join(here, 'rackspace_creds.txt')
     with open(path, 'r') as fh:
         creds = [x.strip() for x in fh.readlines() if x.strip()]

@@ -50,6 +50,7 @@ def scrape_images(blog_url, page_number, page_url, _stop, _string,
             yield ( ('image_url', src),
                     ('scrape_time', time.time()) )
 
+
 def investigate_bombed_cells(blog_url, blog_key, page_number,
                              bomb_center, damaged_cells, _signal):
     """

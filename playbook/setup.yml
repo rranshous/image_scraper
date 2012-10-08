@@ -76,5 +76,6 @@
 
     - name: symlink EST
       action: shell echo "America/New_York" > /etc/timezone && dpkg-reconfigure --frontend noninteractive tzdata
-    #- name: start service
-    #  action: command start image-scraper
+
+    #- name: install amon
+    #  action: curl install.amon.cx | bash
