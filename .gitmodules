@@ -1,0 +1,3 @@
+[submodule "lib/eventapp"]
+	path = lib/eventapp
+	url = git@github.com:rranshous/eventapp.git
