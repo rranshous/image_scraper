@@ -3,12 +3,8 @@ import time
 from itertools import imap
 from operator import itemgetter
 
-from helpers import CellDamage, max_cell_damage, generate_page_url, \
-                    short_hash as sh
-
-
 def scrape_images(blog_url, page_number, page_url, _stop, _string,
-                  get_html, config):
+                  get_html, short_hash, config):
     """
     yields up the src for all images on page
     """
@@ -19,7 +15,7 @@ def scrape_images(blog_url, page_number, page_url, _stop, _string,
     # if we recently tried to download content from this url
     # than skip
     recently_downloaded = _string('%s:recently_downloaded' %
-                                  sh(page_url))
+                                  short_hash(page_url))
 
     if recently_downloaded.exists:
         # if the flag exists than we recently downloaded it, skip
@@ -51,12 +47,15 @@ def scrape_images(blog_url, page_number, page_url, _stop, _string,
                     ('scrape_time', time.time()) )
 
 
-def investigate_bombed_cells(blog_url, blog_key, page_number,
-                             bomb_center, damaged_cells, _signal):
+def investigate_bombed_cells(blog_url, blog_key, page_number, config,
+                             bomb_center, damaged_cells, CellDamage,
+                             generate_page_url, _signal):
     """
     check out all the damaged cells, if any of them have passed
     their damage threshold than announce
     """
+
+    max_cell_damage = config.get('bomb').get('max_cell_damage')
 
     for cell_index in damaged_cells:
         # skip the center cell

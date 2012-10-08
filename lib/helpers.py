@@ -2,9 +2,6 @@ from hashlib import sha1
 import os.path
 import cloudfiles
 
-# totally random size
-bomb_size = 2
-max_cell_damage = bomb_size * 2 + 1
 
 def CellDamage(_signal, blog_key, cell_index):
     return _signal('%s-%s:damage' % (blog_key, cell_index))
@@ -23,7 +20,7 @@ def get_city_size(_signal, blog_key):
     return farthest_bombed_cell
 
 
-def bomb(_signal, blog_key, page_number):
+def bomb(_signal, blog_key, page_number, config):
     """
     'bombs' a page, increasing the likelyhood that
     the bombed page and it's neightbors are scraped
@@ -32,6 +29,7 @@ def bomb(_signal, blog_key, page_number):
     # When we bomb a page we increase the page's signal
     # as well as it's neighbors
 
+    bomb_size = config.get('bomb').get('size')
     bomb_center = page_number
     bomb_front_edge = bomb_center - bomb_size * 2
     bomb_back_edge = bomb_center + bomb_size * 2
@@ -104,7 +102,7 @@ def upload_image(image_data, config):
         obj.write(image_data)
         return image_hash
 
-def retrieve_image(img_short_hash, retries=1):
+def retrieve_image(img_short_hash, config, retries=1):
     """
     retrieves an image from rackspace cloud files by short hash
     """
@@ -132,4 +130,28 @@ def short_hash(data):
     digest.update(data)
     key = hex(int(digest.hexdigest(), 16) % (2**41))[2:-1]
     return key
+
+def get_html(url, config):
+    """
+    yields HTML or None of url
+    """
+    try:
+        import requests
+        proxies = config.get('proxies', {})
+        print 'PROXIES: %s' % proxies
+        return requests.get(url, proxies=proxies).text
+    except:
+        raise
+
+def get_data(url, config):
+    """
+    yields resource data or None
+    """
+    try:
+        import requests
+        proxies = config.get('proxies', {})
+        print 'PROXIES: %s' % proxies
+        return requests.get(url, proxies=proxies).content
+    except:
+        raise
 

@@ -1,48 +1,52 @@
 from os.path import abspath, dirname, join as path_join
-from casconfig import CasConfig
-import helpers
 import sys
+
+# update our python path to be at root of project
+# TODO
+
+# we default to production
 debug = 'debug' in sys.argv
 print 'debug: %s' % debug
 
-from eventapp import EventApp
-import eventapp
+# bring in the event app framework
+from lib.eventapp import EventApp
+import lib.eventapp as eventapp
 
-# we are going to create a flow which scrapes a blog
-# and downloads images it hasn't downloaded before
+# our misc helpers
+import lib.helpers as helpers
 
-import page_functions as page
-import image_functions as image
-import web_functions as web
+# bring in the event handler functions
+import handlers.page as page
+import handlers.image as image
 
 # read in our config
+from casconfig import CasConfig
 here = dirname(abspath(__file__))
 config_path = path_join(here, 'config')
 config_type = 'production' if not debug else 'development'
-
 print 'reading config [%s]: %s' % (config_type, config_path)
-
 config = CasConfig(config_path)
 config.setup(config_type)
 print 'config: %s' % config
 
-# another process has a timer which puts off
-# random page process requests
 
-# the timer_scrape_page event needs to have:
-#   blog_url, blog_key, page_url, page_number
-
+# set up our event app
 app = EventApp('blog_scraper', config,
 
+               ## base context for handlers
                { 'upload_image': helpers.upload_image,
-                 'get_html': web.get_html,
-                 'get_data': web.get_data,
+                 'get_html': helpers.get_html,
+                 'get_data': helpers.get_data,
                  'save_new_image': helpers.upload_image,
                  'get_saved_image': helpers.retrieve_image,
                  'bomb': helpers.bomb,
                  'short_hash': helpers.short_hash,
-                 'Image': image.Image
+                 'Image': image.Image,
+                 'CellDamage': helpers.CellDamage,
+                 'generate_page_url': helpers.generate_page_url
                },
+
+               ## handlers
 
                # catch random page pull requests
                ('timer_scrape_page', page.scrape_images, 'blog_image_found'),
@@ -59,10 +63,11 @@ app = EventApp('blog_scraper', config,
                # consumed cell = page which needs to be scraped
                (page.scrape_images, 'blog_image_found'))
 
-
+# configure eventapp to have the # of threads / forks we want
 eventapp.threads_per_stage = config.get('knobs').get('threads_per_stage')
 eventapp.forks = config.get('knobs').get('forks')
 threaded = config.get('knobs').get('threaded')
 multiprocess = config.get('knobs').get('multiprocess')
 
-app.run(threaded=True, multiprocess=False)
+# run the app, blocking call
+app.run(threaded=threaded, multiprocess=multiprocess)
