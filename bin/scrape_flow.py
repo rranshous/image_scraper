@@ -41,9 +41,10 @@ app = EventApp('blog_scraper', config,
                  'get_saved_image': helpers.retrieve_image,
                  'bomb': helpers.bomb,
                  'short_hash': helpers.short_hash,
-                 'Image': image.Image,
                  'CellDamage': helpers.CellDamage,
-                 'generate_page_url': helpers.generate_page_url
+                 'generate_page_url': helpers.generate_page_url,
+                 'image_size_from_url': helpers.image_size_from_url,
+                 'Image': image.Image
                },
 
                ## handlers

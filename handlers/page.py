@@ -1,16 +1,8 @@
-from bs4 import BeautifulSoup as BS
-import time
-from itertools import imap
-from operator import itemgetter
-
 def scrape_images(blog_url, page_number, page_url, _stop, _string,
                   get_html, short_hash, config):
     """
     yields up the src for all images on page
     """
-
-    # pull down the html
-    page_html = get_html(page_url)
 
     # if we recently tried to download content from this url
     # than skip
@@ -22,6 +14,9 @@ def scrape_images(blog_url, page_number, page_url, _stop, _string,
         print 'page was recently downloaded, skipping download [%s]' % page_url
         yield False
         _stop()
+
+    # pull down the html
+    page_html = get_html(page_url)
 
     print 'page html [%s]: %s' % (page_url, len(page_html or ''))
 
@@ -41,13 +36,17 @@ def scrape_images(blog_url, page_number, page_url, _stop, _string,
             recently_downloaded.let_expire(min_recheck_wait)
 
         # grab our html and yield up the image source urls
+        from bs4 import BeautifulSoup as BS
+        import time
+        from itertools import imap
+        from operator import itemgetter
         soup = BS(page_html)
         for src in imap(itemgetter('src'), soup.find_all('img')):
             yield ( ('image_url', src),
                     ('scrape_time', time.time()) )
 
 
-def investigate_bombed_cells(blog_url, blog_key, page_number, config,
+def investigate_bombed_cells(blog_url, page_number, config,
                              bomb_center, damaged_cells, CellDamage,
                              generate_page_url, _signal):
     """
@@ -62,13 +61,12 @@ def investigate_bombed_cells(blog_url, blog_key, page_number, config,
         if bomb_center == cell_index:
             continue
 
-        cell_damage = CellDamage(_signal, blog_key, cell_index)
+        cell_damage = CellDamage(cell_index)
         print 'cell_damage [%s]: %s' % (cell_index, cell_damage.value)
         if cell_damage.value > max_cell_damage:
             yield dict( cell_damage = cell_damage.value,
                         cell_index = cell_index,
                         blog_url = blog_url,
-                        blog_key = blog_key,
                         page_url = generate_page_url(blog_url, cell_index),
                         page_number = cell_index )
             cell_damage.reset()

@@ -3,11 +3,12 @@ import os.path
 import cloudfiles
 
 
-def CellDamage(_signal, blog_key, cell_index):
+def CellDamage(cell_index, blog_url, short_hash, _signal):
+    blog_key = short_hash(blog_url)
     return _signal('%s-%s:damage' % (blog_key, cell_index))
 
 
-def get_city_size(_signal, blog_key):
+def get_city_size(blog_url, short_hash, _signal):
     """
     returns the estimated size of the city (blog)
     """
@@ -15,12 +16,13 @@ def get_city_size(_signal, blog_key):
     # we are going to estimate the size of the city
     # by looking for the farthest away cell which has
     # taken damage
-
+    blog_key = short_hash(blog_url)
     farthest_bombed_cell = _signal('%s:farthest_damaged_cell' % blog_key)
     return farthest_bombed_cell
 
 
-def bomb(_signal, blog_key, page_number, config):
+def bomb(page_number, blog_url, _signal,
+         config, short_hash, CellDamage):
     """
     'bombs' a page, increasing the likelyhood that
     the bombed page and it's neightbors are scraped
@@ -29,6 +31,7 @@ def bomb(_signal, blog_key, page_number, config):
     # When we bomb a page we increase the page's signal
     # as well as it's neighbors
 
+    blog_key = short_hash(blog_url)
     bomb_size = config.get('bomb').get('size')
     bomb_center = page_number
     bomb_front_edge = bomb_center - bomb_size * 2
@@ -47,7 +50,7 @@ def bomb(_signal, blog_key, page_number, config):
         blast_strength = bomb_centers_damage - ( bomb_center - cell_index)
 
         # update the cell's damage count
-        cell_damage = CellDamage(_signal, blog_key, cell_index)
+        cell_damage = CellDamage(cell_index)
         cell_damage.incr(blast_strength)
 
         damaged_cells.append(cell_index)
@@ -67,6 +70,7 @@ def generate_page_url(blog_url, page_number):
     else:
         return '%s/page/%s' % (blog_url, page_number)
 
+
 def _get_image_container(servicenet=False):
     here = os.path.dirname(os.path.abspath(__file__))
     path = os.path.join(here, 'rackspace_creds.txt')
@@ -77,6 +81,7 @@ def _get_image_container(servicenet=False):
                                      servicenet=servicenet)
     container = conn.get_container('scrape_images')
     return container
+
 
 def upload_image(image_data, config):
     """
@@ -90,8 +95,7 @@ def upload_image(image_data, config):
     try:
         # check if it exists, don't want to re-upload
         obj = container.get_object(image_hash)
-
-        # if it exists return False
+# if it exists return False
         return False
 
     except:
@@ -101,6 +105,7 @@ def upload_image(image_data, config):
         obj.content_type = 'image'
         obj.write(image_data)
         return image_hash
+
 
 def retrieve_image(img_short_hash, config, retries=1):
     """
@@ -121,6 +126,7 @@ def retrieve_image(img_short_hash, config, retries=1):
             if i == retries - 1:
                 raise
 
+
 def short_hash(data):
     """
     creates a short sha based hash for given data
@@ -130,6 +136,7 @@ def short_hash(data):
     digest.update(data)
     key = hex(int(digest.hexdigest(), 16) % (2**41))[2:-1]
     return key
+
 
 def get_html(url, config):
     """
@@ -143,6 +150,7 @@ def get_html(url, config):
     except:
         raise
 
+
 def get_data(url, config):
     """
     yields resource data or None
@@ -155,3 +163,25 @@ def get_data(url, config):
     except:
         raise
 
+def image_size_from_url(blog_url, page_url, image_url):
+    """
+    returns an int representing the images smallest side
+    """
+
+    found_size = None
+    url_patterns = ['media.tumblr.com','tumblr.com/photo']
+
+    # see if we can get the size from the url
+    for p in url_patterns:
+        if p in image_url:
+            size = image_url[-7:-4]
+            if size.isdigit():
+                found_size = int(size)
+                break
+
+    # if we didn't get it from the url, download the image
+    # and inspect the image
+    # TODO
+
+    if found_size:
+        return 'image_size', found_size
