@@ -139,7 +139,7 @@ def save(blog_url, page_url, page_number,
         # set our image's data, lean on the context missing args
         storage_key = context.create_partial(image.set_data)(image_data)
 
-        # save our changes to the image
+        # save our changes to the image, now that we've set the data
         image.save()
 
         # did we upload the image ?

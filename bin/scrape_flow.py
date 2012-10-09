@@ -94,10 +94,12 @@ app = EventApp('blog_scraper', config,
                (page.scrape_images, 'blog_image_found'))
 
 # configure eventapp to have the # of threads / forks we want
-eventapp.threads_per_stage = config.get('knobs').get('threads_per_stage')
-eventapp.forks = config.get('knobs').get('forks')
+thread_count = config.get('knobs').get('threads_per_stage')
+fork_count = config.get('knobs').get('forks')
+
 threaded = config.get('knobs').get('threaded')
 multiprocess = config.get('knobs').get('multiprocess')
 
 # run the app, blocking call
-app.run(threaded=threaded, multiprocess=multiprocess)
+app.run(threaded=threaded, threads=thread_count,
+        multiprocess=multiprocess, forks=fork_count)

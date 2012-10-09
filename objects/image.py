@@ -1,6 +1,7 @@
-from minimongo import Model, Index
+from minimongo import Index, Model
+from base import BaseModel
 
-class Image(Model):
+class Image(BaseModel, Model):
     class Meta:
         database = "scrape_images"
         collection = "images"
@@ -13,33 +14,6 @@ class Image(Model):
             Index("short_hash")
         )
 
-    def __getattr__(self, attr):
-        """
-        over write getattr to return None when
-        we try and get the value of a non-existant
-        attr rather than throwing an exception
-        """
-
-        try:
-            return super(Image, self).__getattr__(attr)
-        except AttributeError:
-            return None
-
-    @classmethod
-    def get_one(cls, **kwargs):
-        return cls.collection.find_one(kwargs)
-
-    @classmethod
-    def get_or_create(cls, **kwargs):
-        """
-        returns the Image matched by it's URL
-        or creates a new Image and sets URL
-        """
-
-        obj = cls.collection.find_one(kwargs)
-        if not obj:
-            obj = cls(**kwargs)
-        return obj
 
     def set_data(self, data, short_hash, upload_image):
         """
@@ -58,10 +32,18 @@ class Image(Model):
         storage_key = upload_image(data)
 
         # upload our downloaded flag
+        # even if the storage key is false we are still updating
+        # this flag, since it is downloaded, just already was
         self.downloaded = True
 
         # save the storage key
-        self.storage_key = storage_key
+        if storage_key is not False:
+            self.storage_key = storage_key
+
+        # cheat, we know the storage key is the short_hash,
+        # so lets set that
+        else:
+            self.storage_key = self.short_hash
 
         # uploaded is the name of the key if we uploaded
         # if it already existed, we get False
