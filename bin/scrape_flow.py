@@ -30,13 +30,25 @@ config = CasConfig(config_path)
 config.setup(config_type)
 print 'config: %s' % config
 
-# import our Mongo backed Image obj
-import objects.image
 
-# update our Image object to use the correct DB
-mongo_config = config.get('mongodb')
-objects.image.Meta.host = mongo_config.get('host')
-objects.image.Meta.port = mongo_config.get('port')
+# potential way of holding off connecting to
+# mongo until we're already forked, not sure
+# minimongo is thread safe, so all of this may
+# be for not
+def get_Image(config, *args, **kwargs):
+    # import our Mongo backed Image obj
+    import objects.image
+
+    # update our Image object to use the correct DB
+
+    # TODO: get config used
+    #       right now minimongo instantiates a connection
+    #       to the DB on import. this makes configuring it
+    #       via the config very .. dificult
+    #mongo_config = config.get('mongodb')
+    #objects.Image.Meta.host = mongo_config.get('host')
+    #objects.Image.Meta.port = mongo_config.get('port')
+    return objects.image.Image(*args, **kwargs)
 
 # set up our event app
 app = EventApp('blog_scraper', config,
@@ -52,7 +64,7 @@ app = EventApp('blog_scraper', config,
                  'CellDamage': helpers.CellDamage,
                  'generate_page_url': helpers.generate_page_url,
                  'image_size_from_url': helpers.image_size_from_url,
-                 'Image': objects.image.Image
+                 'Image': get_Image,
                },
 
                ## handlers

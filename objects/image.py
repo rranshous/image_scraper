@@ -4,8 +4,6 @@ class Image(Model):
     class Meta:
         database = "scrape_images"
         collection = "images"
-        host = None
-        port = None
 
         indices = (
             Index("url"),

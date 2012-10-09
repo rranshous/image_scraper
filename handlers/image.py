@@ -21,10 +21,10 @@ def filter_bad(blog_url, page_url, image_url, _string, _stop,
     min_image_size = config.get('image_details', {}).get('min_image_size')
 
     # see if we already have it's record in mongo
-    image = Image.get_or_create(url=image_url)
+    image = Image().get_or_create(url=image_url)
 
     # update the image's dimensions if they are not set
-    if not getattr(image, 'dimension_long_side', None):
+    if not image.dimension_long_size:
         image.dimension_long_size = image_size
         image.save()
 
@@ -74,7 +74,7 @@ def save(blog_url, page_url, page_number,
         _stop()
 
     # see if we already downloaded the image
-    image = Image.get_one(url=image_url)
+    image = Image().get_one(url=image_url)
 
     # if we've already downloaded the image, skip it
     # this assumes that the same image re-blogged from a different
@@ -101,7 +101,7 @@ def save(blog_url, page_url, page_number,
         if new_image:
 
             # create our image obj if it's a new image
-            image = Image.get_or_create(url=image_url)
+            image = Image().get_or_create(url=image_url)
 
             # let the image know what blog we found it on
             image.blog_url = blog_url

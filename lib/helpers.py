@@ -183,5 +183,5 @@ def image_size_from_url(blog_url, page_url, image_url):
     # and inspect the image
     # TODO
 
-    if found_size:
-        return 'image_size', found_size
+    return found_size
+
