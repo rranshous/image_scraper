@@ -4,6 +4,9 @@ def scrape_images(blog_url, page_number, page_url, _stop, _string,
     yields up the src for all images on page
     """
 
+    # pull down the html
+    page_html = get_html(page_url)
+
     # if we recently tried to download content from this url
     # than skip
     recently_downloaded = _string('%s:recently_downloaded' %
@@ -15,9 +18,6 @@ def scrape_images(blog_url, page_number, page_url, _stop, _string,
         yield False
         _stop()
 
-    # pull down the html
-    page_html = get_html(page_url)
-
     print 'page html [%s]: %s' % (page_url, len(page_html or ''))
 
     if not page_html:
@@ -28,7 +28,6 @@ def scrape_images(blog_url, page_number, page_url, _stop, _string,
         yield False
 
     else:
-
         # update that it's been recently downloaded
         recently_downloaded.value = 1
         min_recheck_wait = config.get('page_details', {}).get('min_recheck_wait')
@@ -42,6 +41,7 @@ def scrape_images(blog_url, page_number, page_url, _stop, _string,
         from operator import itemgetter
         soup = BS(page_html)
         for src in imap(itemgetter('src'), soup.find_all('img')):
+            print 'possible image: %s' % src
             yield ( ('image_url', src),
                     ('scrape_time', time.time()) )
 

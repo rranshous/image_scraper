@@ -1,5 +1,6 @@
 from minimongo import Index, Model
 from base import BaseModel
+from datetime import datetime
 
 class Image(BaseModel, Model):
     class Meta:
@@ -15,7 +16,7 @@ class Image(BaseModel, Model):
         )
 
 
-    def set_data(self, data, short_hash, upload_image):
+    def set_data(self, data, short_hash, upload_image, Blog, blog_url=None):
         """
         stores the given data
 
@@ -44,6 +45,20 @@ class Image(BaseModel, Model):
         # so lets set that
         else:
             self.storage_key = self.short_hash
+
+        # if they told us the blog, make sure we stored it
+        if blog_url:
+
+            # create our blog document if it doesn't exist
+            # TODO: set the short hash when url is set ?
+            blog = Blog().get_or_create(url=blog_url)
+            if not blog.short_hash:
+                blog.short_hash = short_hash(blog_url)
+                blog.save()
+
+            self.blog_urls = self.blog_urls or {}
+            if blog.short_hash not in self.blog_urls:
+                self.blog_urls[blog.short_hash] = datetime.now()
 
         # uploaded is the name of the key if we uploaded
         # if it already existed, we get False

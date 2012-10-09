@@ -8,15 +8,6 @@ def filter_bad(blog_url, page_url, image_url, _string,
     bases decision on image size and url
     """
 
-    # if we recently tried to download content from this url
-    # than skip
-    recently_downloaded = _string('%s:recently_downloaded' % image_url)
-    if recently_downloaded.exists:
-        # if the flag exists than we recently downloaded it, skip
-        print 'image was recently downloaded, skipping download [%s]' % image_url
-        yield False
-        _stop()
-
     # get the image's size
     image_size = image_size_from_url()
     min_image_size = config.get('image_details', {}).get('min_image_size')
@@ -68,6 +59,7 @@ def filter_bad(blog_url, page_url, image_url, _string,
 
         # if we've already downloaded the image, skip it
         if image.downloaded:
+            print 'Already downloaded: skipping'
             yield False
 
         else:
@@ -83,26 +75,16 @@ def save(blog_url, page_url, page_number,
     saves the image to the disk, if not already present
     """
 
-    # if we recently tried to download content from this url
-    # than skip
-    recently_downloaded = _string('%s:recently_downloaded' %
-                                  short_hash(image_url))
-
-    if recently_downloaded.exists:
-
-        # if the flag exists than we recently downloaded it, skip
-        print 'image was recently downloaded, skipping download [%s]' % image_url
-        yield False
-        _stop()
-
     # see if we already downloaded the image
-    image = Image().get_one(url=image_url)
+    image = Image().get_or_create(url=image_url)
 
     # if we've already downloaded the image, skip it
     # this assumes that the same image re-blogged from a different
     # blog ends up w/ a diff url
     if image and image.downloaded:
+        print 'Already downloaded: skipping'
         yield False
+        _stop()
 
     # download the image's data
     image_data = get_data(image_url)
@@ -115,31 +97,8 @@ def save(blog_url, page_url, page_number,
 
     else:
 
-        # see if this is the first time we've seen this image
-        new_image = not image
-
-        # is this the first time we've seen this image?
-        # we could have seen it before but not downloaded it
-        if new_image:
-
-            # create our image obj if it's a new image
-            image = Image().get_or_create(url=image_url)
-
-            # let the image know what blog we found it on
-            image.blog_url = blog_url
-
-            # save our image obj's changes
-            image.save()
-
-            # put off event that we found a new image
-            yield 'new_image', dict( blog_url=blog_url,
-                                     page_number=page_number,
-                                     image_url=image_url )
-
-        # set our image's data, lean on the context missing args
+        # set our image's data, lean on the context for missing args
         storage_key = context.create_partial(image.set_data)(image_data)
-
-        # save our changes to the image, now that we've set the data
         image.save()
 
         # did we upload the image ?
@@ -168,13 +127,4 @@ def save(blog_url, page_url, page_number,
 
         else:
             print 'no save: %s' % (image_url)
-
-    # update that it's been recently downloaded
-    recently_downloaded.value = 1
-
-    # if there is a min time period we wait between re-downloads
-    # update the flag to expire @ that offset
-    min_recheck_wait = config.get('image_details').get('min_recheck_wait')
-    if min_recheck_wait:
-        recently_downloaded.let_expire(min_recheck_wait)
 
