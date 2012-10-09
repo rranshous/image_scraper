@@ -1,5 +1,8 @@
 from os.path import abspath, dirname, join as path_join
 import sys
+import datetime
+
+# what dir is this file in ?
 here = dirname(abspath(__file__))
 
 # update our python path to be at root of project
@@ -50,6 +53,10 @@ def get_Image(config, *args, **kwargs):
     #objects.Image.Meta.port = mongo_config.get('port')
     return objects.image.Image(*args, **kwargs)
 
+def get_Blog(config, *args, **kwargs):
+    import objects.blog
+    return objects.blog.Blog(*args, **kwargs)
+
 # set up our event app
 app = EventApp('blog_scraper', config,
 
@@ -65,6 +72,8 @@ app = EventApp('blog_scraper', config,
                  'generate_page_url': helpers.generate_page_url,
                  'image_size_from_url': helpers.image_size_from_url,
                  'Image': get_Image,
+                 'Blog': get_Blog,
+                 'now': datetime.datetime.now
                },
 
                ## handlers

@@ -1,6 +1,7 @@
 
-def filter_bad(blog_url, page_url, image_url, _string, _stop,
-               image_size_from_url, Image, config):
+def filter_bad(blog_url, page_url, image_url, _string,
+               image_size_from_url, now, config,
+               short_hash, Blog, Image, _stop):
     """
     filter: True for images which interest us
 
@@ -23,21 +24,12 @@ def filter_bad(blog_url, page_url, image_url, _string, _stop,
     # see if we already have it's record in mongo
     image = Image().get_or_create(url=image_url)
 
-    # update the image's dimensions if they are not set
-    if not image.dimension_long_size:
-        image.dimension_long_size = image_size
-        image.save()
-
-    # if we've already downloaded the image, skip it
-    if image.downloaded:
-        yield False
-
     # if it's an avatar image, we don't want it
     if 'avatar' in image_url:
         yield False
 
     # ignore google ad shit
-    if 'google' in image_url:
+    elif 'google' in image_url:
         yield False
 
     # image must have size
@@ -48,9 +40,39 @@ def filter_bad(blog_url, page_url, image_url, _string, _stop,
     elif image_size and image_size < min_image_size:
         yield False
 
+    # looks like we'd save this image
     else:
         print 'good image: %s' % image_url
-        yield 'image_size', image_size
+
+        # update the image's dimensions if they are not set
+        if not image.dimension_long_size and image_size:
+            image.dimension_long_size = image_size
+
+        # make sure we have a blog dict to check / add to
+        if not image.blogs:
+            image.blogs = {}
+
+        # create our blog document if it doesn't exist
+        # TODO: set the short hash when url is set ?
+        blog = Blog().get_or_create(url=blog_url)
+        if not blog.short_hash:
+            blog.short_hash = short_hash(blog_url)
+            blog.save()
+
+        # if this blog url isn't in the list of blogs the image
+        # has been found on, add it
+        if blog_url not in image.blogs.keys():
+            image.blogs[blog.short_hash] = now()
+
+        image.save()
+
+        # if we've already downloaded the image, skip it
+        if image.downloaded:
+            yield False
+
+        else:
+            # push the event on
+            yield 'image_size', image_size
 
 
 def save(blog_url, page_url, page_number,

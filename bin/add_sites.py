@@ -1,9 +1,15 @@
-from revent.lua_client import RedisClient
+from os.path import dirname, abspath, join
 from hashlib import sha1
 import random
 import sys
 
-with open('./sites.txt', 'r') as fh:
+print 'adding: %s' % dirname(abspath('.'))
+sys.path.insert(0, abspath('.'))
+
+from lib.eventapp.revent.lua_client import RedisClient
+
+here = dirname(abspath(__file__))
+with open(join(here, 'sites.txt'), 'r') as fh:
     urls = [u.strip() for u in fh.readlines() if u.strip()]
 
 rc = RedisClient()

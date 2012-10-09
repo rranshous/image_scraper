@@ -69,7 +69,7 @@
       action: command chmod ug+rw /var/log/image-scraper.log
 
     - name: create service upstart script
-      action: shell echo "start on runlevel [23]\nstop on shutdown\nexec /var/services/image_scraper/env/bin/python /var/services/image_scraper/app/scrape_flow.py >> /var/log/image-scraper.log 2>&1\nrespawn" > /etc/init/image-scraper.conf
+      action: shell echo "start on runlevel [23]\nstop on shutdown\nexec /var/services/image_scraper/env/bin/python /var/services/image_scraper/app/bin/scrape_flow.py >> /var/log/image-scraper.log 2>&1\nrespawn" > /etc/init/image-scraper.conf
 
     - name: add cron to re-scrape
       action: shell echo "0 * * * *  cd /var/services/image_scraper/app/; /var/services/image_scraper/env/bin/python /var/services/image_scraper/app/add_sites.py 20 >> /var/log/image-scraper.log\n0 0 * * * cd /var/services/image_scraper/app/; /var/services/image_scraper/env/bin/python /var/services/image_scraper/app/add_sites.py 5000 >> /var/log/image-scraper.log" > /etc/cron.d/image_scraper_add_sites
