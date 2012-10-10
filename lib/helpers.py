@@ -107,7 +107,9 @@ def upload_image(image_data, config):
         return image_hash
 
 
-def retrieve_image(img_short_hash, config, retries=1):
+
+def retrieve_image(img_short_hash, config, stream=False,
+                   retries=1):
     """
     retrieves an image from rackspace cloud files by short hash
     """
@@ -119,12 +121,29 @@ def retrieve_image(img_short_hash, config, retries=1):
         try:
             # check if it exists, don't want to re-upload
             obj = container.get_object(img_short_hash)
-            return obj
+            if stream:
+                return obj.stream()
+            return obj.data()
 
         except:
             # if this is the last re-try, just raise
             if i == retries - 1:
                 raise
+
+
+def get_image_public_url(img_short_hash, config):
+    """
+    returns the url strait to rackspace
+    """
+
+    servicenet = config.get('cloudfiles', {}).get('servicenet')
+    container = _get_image_container(servicenet)
+    try:
+        obj = container.get_object(img_short_hash)
+    except:
+        return None
+
+    return obj.public_ssl_uri()
 
 
 def short_hash(data):
