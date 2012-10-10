@@ -26,6 +26,7 @@
         - python-software-properties
         - squid
         - sysstat
+        - mongodb
 
     - name: download redis 2.6
       action: command wget -O /tmp/redis-2.6.tar.gz http://redis.googlecode.com/files/redis-2.6.0-rc7.tar.gz
