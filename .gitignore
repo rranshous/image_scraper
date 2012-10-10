@@ -4,3 +4,4 @@
 output
 sites.txt
 rackspace_creds.txt
+/config/hosts

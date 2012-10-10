@@ -91,8 +91,9 @@ def most_recent(short_hash, Image, start=0, end=50):
 
     output = ''
     output += pagenate
-    images = Image.collection.find(
-                {'blogs.'+short_hash: {'$exists': True}})
+    images = Image.collection.find({
+                'blogs.'+short_hash: {'$exists': True},
+                'downloaded':True})
     newest_images = images.skip(next_first)
     newest_images = images.limit(range_len)
     print 'short_hash: %s' % short_hash
