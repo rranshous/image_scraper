@@ -54,15 +54,19 @@ context = build_context({
 
 @app.route("/blogs/")
 @context.decorate
-def show_blogs(Blog):
+def show_blogs(Blog, Image):
     output = ''
 
     for blog in Blog.collection.find():
+        image_count = Image.collection.find({
+                        'blogs.'+blog.short_hash: {'$exists':True},
+                        'downloaded':True}).count()
         output += """
-        <a href="./{short_hash}/">{url}</a>
+        <a href="./{short_hash}/">{url}</a> [{image_count}]
         <hr/>
         """.format(short_hash=blog.short_hash,
-                   url=blog.url)
+                   url=blog.url,
+                   image_count=image_count)
 
     return output
 
@@ -94,7 +98,7 @@ def most_recent(short_hash, Image, start=0, end=50):
     images = Image.collection.find({
                 'blogs.'+short_hash: {'$exists': True},
                 'downloaded':True})
-    newest_images = images.skip(next_first)
+    newest_images = images.skip(start)
     newest_images = images.limit(range_len)
     print 'short_hash: %s' % short_hash
     for image in newest_images:
