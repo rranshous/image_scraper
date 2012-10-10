@@ -10,7 +10,7 @@ class Image(BaseModel, Model):
         indices = (
             Index("url"),
             # TODO: figure out how to index urls in hash keys
-            # Index("blog_urls"),
+            # Index("blogs"),
             Index("is_stored"),
             Index("short_hash")
         )
@@ -37,6 +37,10 @@ class Image(BaseModel, Model):
         # this flag, since it is downloaded, just already was
         self.downloaded = True
 
+        # when did we get it's data ?
+        if storage_key is not False:
+            self.last_data_set = datetime.now()
+
         # save the storage key
         if storage_key is not False:
             self.storage_key = storage_key
@@ -56,19 +60,30 @@ class Image(BaseModel, Model):
                 blog.short_hash = short_hash(blog_url)
                 blog.save()
 
-            self.blog_urls = self.blog_urls or {}
-            if blog.short_hash not in self.blog_urls:
-                self.blog_urls[blog.short_hash] = datetime.now()
+            self.blogs = self.blogs or {}
+            if blog.short_hash not in self.blogs:
+                self.blogs[blog.short_hash] = datetime.now()
 
         # uploaded is the name of the key if we uploaded
         # if it already existed, we get False
         return storage_key
 
 
-    def get_data(self, data, retrieve_image):
+    def get_data(self, retrieve_image, stream=False):
         """
         gets the image's data
         """
 
         # reads the image's data and returns
-        return retrieve_image(self.short_hash)
+        return retrieve_image(self.short_hash,
+                              stream=stream)
+
+
+    def get_public_url(self, get_image_public_url):
+        """
+        returns a public url for this image
+        """
+
+        # get that url
+        return get_image_public_url(self.short_hash)
+

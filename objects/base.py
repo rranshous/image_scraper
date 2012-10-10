@@ -1,4 +1,4 @@
-
+from datetime import datetime
 from minimongo import Model
 
 class BaseModel():
@@ -32,5 +32,6 @@ class BaseModel():
         obj = cls.collection.find_one(kwargs)
         if not obj:
             obj = cls(**kwargs)
+            obj.created_at = datetime.now()
         return obj
 

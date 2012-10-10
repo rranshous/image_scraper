@@ -11,3 +11,4 @@ casconfig
 https://github.com/rackspace/python-cloudfiles/tarball/master
 pymongo
 minimongo
+flask
