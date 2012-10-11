@@ -30,6 +30,11 @@ from objects.image import Image
 # and we def need our context
 from lib.eventapp.bubbles import build_context
 
+# we want to make available revent stats
+from lib.eventapp.revent.lua_client import RedisClient as ReventClient
+from lib.eventapp.revent.introspect_data import ( get_channel_details,
+                                                  get_queue_len )
+
 # and our helpers
 import lib.helpers as helpers
 
@@ -39,6 +44,9 @@ from flask import Flask, Response, redirect
 # create our app
 app = Flask('image-scraper')
 
+# instantiate a revent client
+revent_client = ReventClient(**config.get('revent'))
+
 # CONTEXT
 
 context = build_context({
@@ -46,7 +54,10 @@ context = build_context({
     'Blog': Blog,
     'config': config,
     'retrieve_image': helpers.retrieve_image,
-    'get_image_public_url': helpers.get_image_public_url
+    'get_image_public_url': helpers.get_image_public_url,
+    'get_channel_details': get_channel_details,
+    'get_queue_len': get_queue_len,
+    'revent_client': revent_client
 })
 
 
@@ -143,6 +154,38 @@ def image_data(short_hash, Image, context):
     data_stream = fn(stream=True)
     return Response(data_stream, mimetype='image')
 
+@app.route("/stats/")
+@context.decorate
+def stats(revent_client, get_channel_details, get_queue_len,
+          Image, Blog):
+    output = ""
+
+    seen = Image.collection.find().count()
+    downloaded = Image.collection.find({'downloaded':True}).count()
+    percent_downloaded = downloaded / float(seen)
+    output += "IMAGES:<br/>"
+    output += """
+    SEEN: {seen_count} <br/>
+    DOWNLOADED: {downloaded_count} <br/>
+    % DOWNLOADED: {percent_downloaded:.3%}
+    <hr/>
+    """.format(seen_count=seen,
+               downloaded_count=downloaded,
+               percent_downloaded=percent_downloaded)
+
+    output += "BLOGS:<br/>"
+    output += """
+    COUNT: {count}<hr/>
+    """.format(count=Blog.collection.find().count())
+
+    output += "CHANNELS:<br/>"
+    for name, cfilter in get_channel_details(revent_client).iteritems():
+        output += """
+        {name}: {count}<br/>
+        """.format(name=name,
+                   count=get_queue_len(revent_client, name))
+
+    return output
 
 # start our app from the command line
 if __name__ == "__main__":
