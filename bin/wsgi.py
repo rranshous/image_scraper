@@ -68,6 +68,13 @@ def show_blogs(Blog, Image):
                    url=blog.url,
                    image_count=image_count)
 
+    downloaded_images = Image.collection.find({'downloaded':True})
+    image_count = downloaded_images.count()
+
+    output += """
+    TOTAL: {total_images}
+    """.format(total_images=image_count)
+
     return output
 
 
@@ -78,11 +85,8 @@ def show_blogs(Blog, Image):
 def most_recent(short_hash, Image, start=0, end=50):
 
     range_len = end - start
-    print 'range len: %s' % range_len
     next_first = start + range_len + 1
-    print 'next first: %s' % next_first
     next_last = next_first + range_len
-    print 'next_last: %s' % next_last
 
     pagenate = """
     <a href="/blogs/{short_hash}/{next_first}/{next_last}/">
@@ -102,7 +106,6 @@ def most_recent(short_hash, Image, start=0, end=50):
     newest_images = images.limit(range_len)
     print 'short_hash: %s' % short_hash
     for image in newest_images:
-        print 'image: %s' % image
         output += """
         <a href="/images/{short_hash}/data/">
         <img src="/images/{short_hash}/data/">
@@ -113,17 +116,26 @@ def most_recent(short_hash, Image, start=0, end=50):
 
     return output
 
-
+image_urls = {}
 @app.route("/images/<short_hash>/data/")
 @context.decorate
 def image_data(short_hash, Image, context):
+    global image_urls
 
     image = Image.get_one(short_hash=short_hash)
     if not image:
         return 'not found'
 
     # go directly to the source
+    if image.short_hash in image_urls:
+        print 'cached url'
+        redirect(image_urls.get(image.short_hash))
+
     url = context.create_partial(image.get_public_url)()
+
+    if not image.short_hash in image_urls:
+        image_urls[short_hash] = url
+
     return redirect(url)
 
     # TODO: stream

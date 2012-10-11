@@ -10,8 +10,8 @@ class Image(BaseModel, Model):
         indices = (
             Index("url"),
             # TODO: figure out how to index urls in hash keys
-            # Index("blogs"),
-            Index("is_stored"),
+            Index("blogs"),
+            Index("downloaded"),
             Index("short_hash")
         )
 
