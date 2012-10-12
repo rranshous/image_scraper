@@ -9,14 +9,52 @@ class Image(BaseModel, Model):
 
         indices = (
             Index("url"),
-            # TODO: figure out how to index urls in hash keys
             Index("blogs"),
             Index("downloaded"),
-            Index("short_hash")
+            Index("short_hash"),
+            Index("categories")
         )
 
 
-    def set_data(self, data, short_hash, upload_image, Blog, blog_url=None):
+    def mark_seen(self, short_hash, blog_url, Blog, Image, seen_at=None):
+        """
+        Marks the image as having been seen on the given blog
+        """
+
+        # get the image we just saw
+        image = Image.get_one(short_hash=short_hash)
+        assert image, "Could not find image to mark seen"
+
+        # get the blog where we just saw this image
+        blog = Blog().get_or_create(url=blog_url)
+
+        # update the blog new blog obj's short hash
+        if not blog.short_hash:
+            blog.short_hash = short_hash(blog_url)
+            blog.save()
+
+        assert blog, "Could not find blog to mark image seen"
+
+        # check if the image already has the blog's reference
+        if blog.short_hash not in image.blogs:
+
+            # if they didn't specify when they saw it, assume now
+            seen_at = seen_at or datetime.now()
+
+            # add the blog in as being seen
+            image.blogs[blog.short_hash] = seen_at
+
+        # add the blog's categories as the images
+        for category in blog.categories:
+            if category not in self.categories:
+                self.categories.append(category.lower())
+
+        # return our timestamp
+        return seen_at
+
+
+    def set_data(self, data, short_hash, upload_image,
+                 Blog, Image, blog_url=None):
         """
         stores the given data
 
@@ -47,22 +85,12 @@ class Image(BaseModel, Model):
 
         # cheat, we know the storage key is the short_hash,
         # so lets set that
-        else:
+        elif not self.storage_key:
             self.storage_key = self.short_hash
 
         # if they told us the blog, make sure we stored it
         if blog_url:
-
-            # create our blog document if it doesn't exist
-            # TODO: set the short hash when url is set ?
-            blog = Blog().get_or_create(url=blog_url)
-            if not blog.short_hash:
-                blog.short_hash = short_hash(blog_url)
-                blog.save()
-
-            self.blogs = self.blogs or {}
-            if blog.short_hash not in self.blogs:
-                self.blogs[blog.short_hash] = datetime.now()
+            self.mark_seen(short_hash, blog_url, Blog, Image)
 
         # uploaded is the name of the key if we uploaded
         # if it already existed, we get False
