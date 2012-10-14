@@ -14,9 +14,6 @@
     - name: uncompress working dir snapshot
       action: command tar xvfz /tmp/image_scraper.tar.gz  -C /var/services/image_scraper/app --no-same-owner
 
-    - name: create symlink to output
-      action: file dest=/var/services/image_scraper/app/output src=/var/services/image_scraper/output state=link
-
     - name: install service requirements
       action: shell /var/services/image_scraper/env/bin/pip install -r /var/services/image_scraper/app/requirements.txt
 

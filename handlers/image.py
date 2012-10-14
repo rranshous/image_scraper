@@ -75,6 +75,15 @@ def save(blog_url, page_url, page_number,
     saves the image to the disk, if not already present
     """
 
+    # if we recently tried to download content from this url
+    # than skip
+    recently_downloaded = _string('%s:recently_downloaded' %
+                                  short_hash(image_url))
+
+    if recently_downloaded.exists:
+        print 'image was recently downloaded: %s' % image_url
+        _stop()
+
     # see if we already downloaded the image
     image = Image().get_or_create(url=image_url)
 
@@ -127,4 +136,10 @@ def save(blog_url, page_url, page_number,
 
         else:
             print 'no save: %s' % (image_url)
+
+        # update that it's been recently downloaded
+        recently_downloaded.value = 1
+        min_recheck_wait = config.get('image_details', {}).get('min_recheck_wait')
+        if min_recheck_wait:
+            recently_downloaded.let_expire(min_recheck_wait)
 

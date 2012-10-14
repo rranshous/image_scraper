@@ -16,14 +16,12 @@ class Image(BaseModel, Model):
         )
 
 
-    def mark_seen(self, short_hash, blog_url, Blog, Image, seen_at=None):
+    def mark_seen(self, blog_url, Blog, Image, seen_at=None):
         """
         Marks the image as having been seen on the given blog
-        """
 
-        # get the image we just saw
-        image = Image.get_one(short_hash=short_hash)
-        assert image, "Could not find image to mark seen"
+        returns Bool as indicator of new seen
+        """
 
         # get the blog where we just saw this image
         blog = Blog().get_or_create(url=blog_url)
@@ -33,24 +31,28 @@ class Image(BaseModel, Model):
             blog.short_hash = short_hash(blog_url)
             blog.save()
 
-        assert blog, "Could not find blog to mark image seen"
-
         # check if the image already has the blog's reference
-        if blog.short_hash not in image.blogs:
+        new_blog = False
+        self.blogs = self.blogs or {}
+        if blog.short_hash not in self.blogs:
+
+            # it's new !
+            new_blog = True
 
             # if they didn't specify when they saw it, assume now
             seen_at = seen_at or datetime.now()
 
             # add the blog in as being seen
-            image.blogs[blog.short_hash] = seen_at
+            self.blogs[blog.short_hash] = seen_at
 
         # add the blog's categories as the images
+        blog.categories = blog.categories or []
         for category in blog.categories:
             if category not in self.categories:
                 self.categories.append(category.lower())
 
         # return our timestamp
-        return seen_at
+        return new_blog
 
 
     def set_data(self, data, short_hash, upload_image,
@@ -90,7 +92,7 @@ class Image(BaseModel, Model):
 
         # if they told us the blog, make sure we stored it
         if blog_url:
-            self.mark_seen(short_hash, blog_url, Blog, Image)
+            self.mark_seen(blog_url, Blog, Image)
 
         # uploaded is the name of the key if we uploaded
         # if it already existed, we get False

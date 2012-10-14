@@ -54,9 +54,6 @@
       action: command /usr/bin/virtualenv /var/services/image_scraper/env
       ignore_errors: True
 
-    - name: create output directory
-      action: file dest=/var/services/image_scraper/output state=directory
-
     - name: create app directory
       action: file dest=/var/services/image_scraper/app state=directory
 
@@ -73,10 +70,10 @@
       action: shell echo "start on runlevel [23]\nstop on shutdown\nexec /var/services/image_scraper/env/bin/python /var/services/image_scraper/app/bin/scrape_flow.py >> /var/log/image-scraper.log 2>&1\nrespawn" > /etc/init/image-scraper.conf
 
     - name: add cron to re-scrape
-      action: shell echo "0 * * * *  cd /var/services/image_scraper/app/; /var/services/image_scraper/env/bin/python /var/services/image_scraper/app/bin/add_sites.py 20 >> /var/log/image-scraper.log" > /etc/cron.d/image_scraper_add_sites
+      action: shell echo "#!/bin/sh\ncd /var/services/image_scraper/app/; /var/services/image_scraper/env/bin/python /var/services/image_scraper/app/bin/add_sites.py 20 >> /var/log/image-scraper.log" > /etc/cron.hourly/image_scraper_add_sites
+
+    - name: update crontask perms
+      action: command chmod ug+rwx /etc/cron.hourly/image_scraper_add_sites
 
     - name: symlink EST
       action: shell echo "America/New_York" > /etc/timezone && dpkg-reconfigure --frontend noninteractive tzdata
-
-    #- name: install amon
-    #  action: curl install.amon.cx | bash

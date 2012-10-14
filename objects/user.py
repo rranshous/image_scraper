@@ -24,7 +24,7 @@ class User(BaseModel, Model):
         """
 
         # get our image
-        image = Image.get_one(short_hash=image_short_hash)
+        image = Image().get_one(short_hash=image_short_hash)
         assert image, "Could not find image"
 
         # make sure this preference type's attributes exist
