@@ -99,14 +99,14 @@ class Image(BaseModel, Model):
         return storage_key
 
 
-    def get_data(self, retrieve_image, stream=False):
+    def get_data(self, get_saved_image, stream=False):
         """
         gets the image's data
         """
 
         # reads the image's data and returns
-        return retrieve_image(self.short_hash,
-                              stream=stream)
+        return get_saved_image(self.short_hash,
+                               stream=stream)
 
 
     def get_public_url(self, get_image_public_url):

@@ -123,7 +123,7 @@ def retrieve_image(img_short_hash, config, stream=False,
             obj = container.get_object(img_short_hash)
             if stream:
                 return obj.stream()
-            return obj.data()
+            return obj.read()
 
         except:
             # if this is the last re-try, just raise
@@ -180,6 +180,7 @@ def get_data(url, config):
     except:
         raise
 
+
 def image_size_from_url(blog_url, page_url, image_url):
     """
     returns an int representing the images smallest side
@@ -201,4 +202,22 @@ def image_size_from_url(blog_url, page_url, image_url):
     # TODO
 
     return found_size
+
+
+def compute_vhash(image_data):
+    """
+    computes the visual hash for the given image's data
+    return vhash string
+    """
+
+    return img_vhash(StringIO(image_data))
+
+
+def compare_vhashes(v1, v2):
+    """
+    returns a guess as to whether the 2 given vhash's
+    are from the same image
+    """
+
+    return vhash_hamming(v1, v2)
 

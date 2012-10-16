@@ -2,6 +2,7 @@
 
 from lib.config import get_config
 from lib.bubbles import build_context
+import lib.imgcompare.avg as v
 import lib.helpers as h
 import lib.clients as c
 import objects as o
@@ -33,6 +34,8 @@ base_map = dict(
     image_size_from_url = h.image_size_from_url,
     get_channel_details = intro.get_channel_details,
     get_queue_len = intro.get_queue_len,
+    compute_vhash = v.average_hash,
+    compare_vhash = v.hamming,
 
     # OBJECTS
 
