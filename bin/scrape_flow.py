@@ -34,7 +34,7 @@ from context import context
 context.add('debug', debug)
 
 # set our config into the context
-config = context.get('get_config')('scraper')
+config = context.get('get_config')(debug, 'scraper')
 context.add('config', config)
 
 

@@ -3,6 +3,14 @@
 from os.path import abspath, dirname, join as path_join
 import sys
 
+# what dir is this file in ?
+here = dirname(abspath(__file__))
+
+# update our python path to be at root of project
+base = dirname(here)
+sys.path.insert(0, base)
+
+
 # we default to production
 debug = 'debug' in sys.argv
 print 'debug: %s' % debug
@@ -10,9 +18,6 @@ print 'debug: %s' % debug
 # CONTEXT
 from context import context
 
-# OBJECTS
-from objects.blog import Blog
-from objects.image import Image
 
 # and our helpers
 import lib.helpers as helpers
@@ -23,6 +28,10 @@ from flask import Flask, Response, redirect
 # create our app
 app = Flask('image-scraper')
 
+# set our config into the context
+config = context.get('get_config')(debug, 'scraper')
+context.add('config', config)
+
 # instantiate a revent client
 revent_client = context.get('get_revent')(**config.get('revent'))
 
@@ -32,20 +41,17 @@ context.add('revent', revent_client)
 # add our debug flag to config
 context.add('debug', debug)
 
-# set our config into the context
-config = context.get('get_config')('scraper')
-context.add('config', config)
 
 
 # OUR WSGI HANDLERS
 
 @app.route("/blogs/")
 @context.decorate
-def show_blogs(Blog, Image):
+def show_blogs(get_Blog, get_Image):
     output = ''
 
-    for blog in Blog.collection.find():
-        image_count = Image.collection.find({
+    for blog in get_Blog().collection.find():
+        image_count = get_Image().collection.find({
                         'blogs.'+blog.short_hash: {'$exists':True},
                         'downloaded':True}).count()
         output += """
@@ -55,7 +61,7 @@ def show_blogs(Blog, Image):
                    url=blog.url,
                    image_count=image_count)
 
-    downloaded_images = Image.collection.find({'downloaded':True})
+    downloaded_images = get_Image().collection.find({'downloaded':True})
     image_count = downloaded_images.count()
 
     output += """
@@ -69,7 +75,7 @@ def show_blogs(Blog, Image):
 @app.route("/blogs/<short_hash>/<int:start>/")
 @app.route("/blogs/<short_hash>/")
 @context.decorate
-def most_recent(short_hash, Image, start=0, end=50):
+def most_recent(short_hash, get_Image, start=0, end=50):
 
     range_len = end - start
     next_first = start + range_len + 1
@@ -86,9 +92,10 @@ def most_recent(short_hash, Image, start=0, end=50):
 
     output = ''
     output += pagenate
-    images = Image.collection.find({
+    images = get_Image().collection.find({
                 'blogs.'+short_hash: {'$exists': True},
                 'downloaded':True})
+    newest_images = images.sort('created_at', 1)
     newest_images = images.skip(start)
     newest_images = images.limit(range_len)
     print 'short_hash: %s' % short_hash
@@ -106,10 +113,10 @@ def most_recent(short_hash, Image, start=0, end=50):
 image_urls = {}
 @app.route("/images/<short_hash>/data/")
 @context.decorate
-def image_data(short_hash, Image, context):
+def image_data(short_hash, get_Image, context):
     global image_urls
 
-    image = Image.get_one(short_hash=short_hash)
+    image = get_Image().get_one(short_hash=short_hash)
     if not image:
         return 'not found'
 
@@ -133,11 +140,11 @@ def image_data(short_hash, Image, context):
 @app.route("/stats/")
 @context.decorate
 def stats(revent, get_channel_details, get_queue_len,
-          Image, Blog):
+          get_Image, get_Blog):
     output = ""
 
-    seen = Image.collection.find().count()
-    downloaded = Image.collection.find({'downloaded':True}).count()
+    seen = get_Image().collection.find().count()
+    downloaded = get_Image().collection.find({'downloaded':True}).count()
     percent_downloaded = downloaded / float(seen)
     output += "IMAGES:<br/>"
     output += """
@@ -152,7 +159,7 @@ def stats(revent, get_channel_details, get_queue_len,
     output += "BLOGS:<br/>"
     output += """
     COUNT: {count}<hr/>
-    """.format(count=Blog.collection.find().count())
+    """.format(count=get_Blog().collection.find().count())
 
     output += "CHANNELS:<br/>"
     for name, cfilter in get_channel_details(revent).iteritems():

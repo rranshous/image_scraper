@@ -1,4 +1,4 @@
-import os
+import os, threading
 
 class SafeClientContainer(object):
     """
@@ -31,24 +31,12 @@ class SafeClientContainer(object):
         return threads[thread_id]
 
 
-class get_client(object):
-    def __call__(self, *args, **kwargs):
-        return self.client_container.get_client(*args, **kwargs)
+from lib.revent.lua_client import RedisClient as ReventClient
+get_revent_client = SafeClientContainer(ReventClient).get_client
 
+from pymongo import Connection as MConnection
+get_mongo_client = SafeClientContainer(MConnection).get_client
 
-class get_revent_client(get_client):
-    def __init__(self):
-        from helpers.revent.lua_client import RedisClient
-        self.client_container = SafeClientContainer(RedisClient)
+from redis import Redis
+get_redis_client = SafeClientContainer(Redis).get_client
 
-
-class get_mongo_client(get_client):
-    def __init__(self):
-        from mongo import Client
-        self.client_container = SafeClientContainer(Client)
-
-
-class get_redis_client(get_client):
-    def __init__(self):
-        from redis import RedisClient
-        self.client_container = SafeClientContainer(RedisClient)
