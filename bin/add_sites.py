@@ -13,7 +13,6 @@ with open(join(here, 'sites.txt'), 'r') as fh:
     urls = [u.strip() for u in fh.readlines() if u.strip()]
 
 rc = RedisClient()
-skip_chance = .8
 top = 4000
 if len(sys.argv) > 1:
     top = int(sys.argv[1])
@@ -21,12 +20,9 @@ if len(sys.argv) > 1:
 
 print 'ADDING SITES: %s' % top
 
-for i in xrange(0, random.randint(0,top), random.randint(5,20)):
+for i in xrange(0, top):
 
     for url in urls:
-
-        if random.random() < skip_chance:
-            continue
 
         if not url.endswith('/'):
             url+='/'
