@@ -1,7 +1,7 @@
 
 def filter_bad(blog_url, page_url, image_url, _string,
                image_size_from_url, now, config,
-               short_hash, Blog, Image, _stop):
+               short_hash, get_Blog, get_Image, _stop):
     """
     filter: True for images which interest us
 
@@ -13,7 +13,7 @@ def filter_bad(blog_url, page_url, image_url, _string,
     min_image_size = config.get('image_details', {}).get('min_image_size')
 
     # see if we already have it's record in mongo
-    image = Image().get_or_create(url=image_url)
+    image = get_Image().get_or_create(url=image_url)
 
     # if it's an avatar image, we don't want it
     if 'avatar' in image_url:
@@ -45,7 +45,7 @@ def filter_bad(blog_url, page_url, image_url, _string,
 
         # create our blog document if it doesn't exist
         # TODO: set the short hash when url is set ?
-        blog = Blog().get_or_create(url=blog_url)
+        blog = get_Blog().get_or_create(url=blog_url)
         if not blog.short_hash:
             blog.short_hash = short_hash(blog_url)
             blog.save()
@@ -69,7 +69,7 @@ def filter_bad(blog_url, page_url, image_url, _string,
 
 def save(blog_url, page_url, page_number,
          image_url, upload_image, get_data, bomb, config,
-         short_hash, Image, _signal, _string, _stop,
+         short_hash, get_Image, _signal, _string, _stop,
          context):
     """
     saves the image to the disk, if not already present
@@ -85,7 +85,7 @@ def save(blog_url, page_url, page_number,
         _stop()
 
     # see if we already downloaded the image
-    image = Image().get_or_create(url=image_url)
+    image = get_Image().get_or_create(url=image_url)
 
     # if we've already downloaded the image, skip it
     # this assumes that the same image re-blogged from a different

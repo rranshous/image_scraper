@@ -15,7 +15,9 @@ def get_config(debug, subtype=None):
     """
 
     config_type = 'production' if not debug else 'development'
-    print 'reading config [%s]: %s' % (config_type, config_dir)
-    config = CasConfig(config_path)
+    print 'reading config [%s|%s]: %s' % (
+            config_type, subtype or '', config_dir)
+    config = CasConfig(config_dir)
     config.setup(config_type, subtype)
+    return config
 

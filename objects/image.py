@@ -16,7 +16,7 @@ class Image(BaseModel, Model):
         )
 
 
-    def mark_seen(self, blog_url, Blog, Image, seen_at=None):
+    def mark_seen(self, blog_url, get_Blog, seen_at=None):
         """
         Marks the image as having been seen on the given blog
 
@@ -24,7 +24,7 @@ class Image(BaseModel, Model):
         """
 
         # get the blog where we just saw this image
-        blog = Blog().get_or_create(url=blog_url)
+        blog = get_Blog().get_or_create(url=blog_url)
 
         # update the blog new blog obj's short hash
         if not blog.short_hash:
@@ -56,7 +56,7 @@ class Image(BaseModel, Model):
 
 
     def set_data(self, data, short_hash, upload_image,
-                 Blog, Image, blog_url=None):
+                 get_Blog, get_Image, blog_url=None):
         """
         stores the given data
 
@@ -92,7 +92,7 @@ class Image(BaseModel, Model):
 
         # if they told us the blog, make sure we stored it
         if blog_url:
-            self.mark_seen(blog_url, Blog, Image)
+            self.mark_seen(blog_url, get_Blog)
 
         # uploaded is the name of the key if we uploaded
         # if it already existed, we get False
