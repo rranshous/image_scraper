@@ -25,13 +25,16 @@ class BaseModel():
     @classmethod
     def get_or_create(cls, **kwargs):
         """
-        returns the Image matched by it's URL
-        or creates a new Image and sets URL
+        returns the obj matched by the passed kwargs
+        or creates a new Obj and sets kwargs
         """
 
         obj = cls.collection.find_one(kwargs)
         if not obj:
             obj = cls(**kwargs)
+
+            # each new object gets a created_at
             obj.created_at = datetime.now()
+
         return obj
 

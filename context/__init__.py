@@ -6,6 +6,7 @@ import lib.helpers as h
 import lib.clients as c
 import objects as o
 import datetime
+import lib.revent.introspect_data as intro
 
 # set up the base mapping for our central context
 
@@ -13,9 +14,9 @@ base_map = dict(
 
     # CLIENTS
 
-    revent = c.get_revent_client,
-    mongo = c.get_mongo_client,
-    redis = c.get_redis_client,
+    get_revent = c.get_revent_client,
+    get_mongo = c.get_mongo_client,
+    get_redis = c.get_redis_client,
 
     # HELPERS
 
@@ -30,7 +31,8 @@ base_map = dict(
     CellDamage = h.CellDamage,
     generate_page_url = h.generate_page_url,
     image_size_from_url = h.image_size_from_url,
-    get_channel_details = get_channel_details,
+    get_channel_details = intro.get_channel_details,
+    get_queue_len = intro.get_queue_len,
 
     # OBJECTS
 
@@ -39,7 +41,7 @@ base_map = dict(
 
     # CONFIG
 
-    get_config = get_config
+    get_config = get_config,
 
     # MISC
 

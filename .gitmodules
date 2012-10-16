@@ -1,3 +1,9 @@
 [submodule "lib/eventapp"]
 	path = lib/eventapp
 	url = git@github.com:rranshous/eventapp.git
+[submodule "lib/bubbles"]
+	path = lib/bubbles
+	url = git@github.com:rranshous/bubbles.git
+[submodule "lib/revent"]
+	path = lib/revent
+	url = git@github.com:altalang/Revent.git

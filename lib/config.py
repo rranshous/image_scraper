@@ -3,6 +3,7 @@
 from os.path import abspath, dirname, join as path_join
 from casconfig import CasConfig
 
+here = dirname(abspath(__file__))
 base = dirname(here)
 config_dir = path_join(base, 'config')
 

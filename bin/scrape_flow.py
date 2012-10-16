@@ -1,3 +1,5 @@
+""" scraping script """
+
 from os.path import abspath, dirname, join as path_join
 import sys
 import datetime
@@ -28,9 +30,11 @@ import handlers.image as image
 # read in the context
 from context import context
 
+# add our debug flag to config
+context.add('debug', debug)
 
 # set our config into the context
-config = context.get('get_config')(debug, 'scraper')
+config = context.get('get_config')('scraper')
 context.add('config', config)
 
 

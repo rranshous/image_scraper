@@ -1,39 +1,18 @@
+""" WSGI app for image-scraper """
+
 from os.path import abspath, dirname, join as path_join
 import sys
-
-## WSGI app for image-scraper
-
-# what dir is this file in ?
-here = dirname(abspath(__file__))
-
-# update our python path to be at root of project
-base = dirname(here)
-sys.path.insert(0, base)
 
 # we default to production
 debug = 'debug' in sys.argv
 print 'debug: %s' % debug
 
-# read in our config
-from casconfig import CasConfig
-config_path = path_join(base, 'config')
-config_type = 'production' if not debug else 'development'
-print 'reading config [%s]: %s' % (config_type, config_path)
-config = CasConfig(config_path)
-config.setup(config_type)
-print 'config: %s' % config
+# CONTEXT
+from context import context
 
 # OBJECTS
 from objects.blog import Blog
 from objects.image import Image
-
-# and we def need our context
-from lib.eventapp.bubbles import build_context
-
-# we want to make available revent stats
-from lib.eventapp.revent.lua_client import RedisClient as ReventClient
-from lib.eventapp.revent.introspect_data import ( get_channel_details,
-                                                  get_queue_len )
 
 # and our helpers
 import lib.helpers as helpers
@@ -45,23 +24,20 @@ from flask import Flask, Response, redirect
 app = Flask('image-scraper')
 
 # instantiate a revent client
-revent_client = ReventClient(**config.get('revent'))
+revent_client = context.get('get_revent')(**config.get('revent'))
 
-# CONTEXT
+# add the revent client to context
+context.add('revent', revent_client)
 
-context = build_context({
-    'Image': Image,
-    'Blog': Blog,
-    'config': config,
-    'retrieve_image': helpers.retrieve_image,
-    'get_image_public_url': helpers.get_image_public_url,
-    'get_channel_details': get_channel_details,
-    'get_queue_len': get_queue_len,
-    'revent_client': revent_client
-})
+# add our debug flag to config
+context.add('debug', debug)
+
+# set our config into the context
+config = context.get('get_config')('scraper')
+context.add('config', config)
 
 
-# OUR HANDLERS
+# OUR WSGI HANDLERS
 
 @app.route("/blogs/")
 @context.decorate
@@ -156,7 +132,7 @@ def image_data(short_hash, Image, context):
 
 @app.route("/stats/")
 @context.decorate
-def stats(revent_client, get_channel_details, get_queue_len,
+def stats(revent, get_channel_details, get_queue_len,
           Image, Blog):
     output = ""
 
@@ -179,11 +155,11 @@ def stats(revent_client, get_channel_details, get_queue_len,
     """.format(count=Blog.collection.find().count())
 
     output += "CHANNELS:<br/>"
-    for name, cfilter in get_channel_details(revent_client).iteritems():
+    for name, cfilter in get_channel_details(revent).iteritems():
         output += """
         {name}: {count}<br/>
         """.format(name=name,
-                   count=get_queue_len(revent_client, name))
+                   count=get_queue_len(revent, name))
 
     return output
 
