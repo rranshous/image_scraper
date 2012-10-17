@@ -56,7 +56,7 @@ class Image(BaseModel, Model):
 
 
     def set_data(self, data, short_hash, upload_image,
-                 get_Blog, get_Image, blog_url=None):
+                 get_Blog, get_Image, compute_vhash, blog_url=None):
         """
         stores the given data
 
@@ -93,6 +93,10 @@ class Image(BaseModel, Model):
         # if they told us the blog, make sure we stored it
         if blog_url:
             self.mark_seen(blog_url, get_Blog)
+
+        # if we haven't set the vhash, do so
+        if not self.vhash:
+            self.vhash = str(compute_vhash(data))
 
         # uploaded is the name of the key if we uploaded
         # if it already existed, we get False
