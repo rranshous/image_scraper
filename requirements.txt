@@ -4,6 +4,7 @@ requests
 beautifulsoup4
 redis_natives
 decorator
+PIL
 
 https://github.com/andymccurdy/redis-py/tarball/master
 configsmash

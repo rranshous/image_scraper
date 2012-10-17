@@ -27,6 +27,7 @@
         - squid
         - sysstat
         - mongodb
+        - libjpeg-dev
 
     - name: download redis 2.6
       action: command wget -O /tmp/redis-2.6.tar.gz http://redis.googlecode.com/files/redis-2.6.0-rc7.tar.gz
@@ -77,3 +78,8 @@
 
     - name: symlink EST
       action: shell echo "America/New_York" > /etc/timezone && dpkg-reconfigure --frontend noninteractive tzdata
+
+    - name: symlink PIL support
+      action: file dest=/usr/lib/x86_64-linux-gnu/libjpeg.so src=/usr/lib state=link
+      action: file dest=/usr/lib/x86_64-linux-gnu/libfreetype.so src=/usr/lib state=link
+      action: file dest=/usr/lib/x86_64-linux-gnu/libz.so src=/usr/lib state=link

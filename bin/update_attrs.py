@@ -3,6 +3,8 @@ goes through all the records we have for images / blogs / users
 setting missing attrs based on existing
 """
 
+from multiprocessing.pool import ThreadPool
+
 # TODO: set vhash on each image
 # TODO: set created_at on each image
 # TODO: set created_at on each blog
@@ -30,11 +32,25 @@ get_Image = context.get('get_Image')
 images = get_Image().collection.find({'vhash': None,
                                       'downloaded': True})
 
-print 'image count: %s' % images.count()
-for image in images:
-    print ('[compute vhash] %s' % image.short_hash),
+# start up a worker pool
+#pool = ThreadPool(3)
+
+def do_vhash(i, image):
+    print ('\n[compute vhash] (%s/%s)\t%s' % (
+                i, total_images-i, image.short_hash)),
     image_data = context.create_partial(image.get_data)()
-    image.vhash = str(compute(image_data))
-    print image.vhash
-    image.save()
+    try:
+        image.vhash = str(compute(image_data))
+        print '\t' + image.vhash
+        image.save()
+    except Exception, ex:
+        print '\n%s:: %s' % (image.short_hash, ex)
+    return image.vhash
+
+total_images = images.count()
+print 'image count: %s' % total_images
+
+for i, image in enumerate(images):
+    do_vhash(i, image)
+    #r = pool.apply_async(do_vhash, (i,image))
 
