@@ -33,7 +33,7 @@ images = get_Image().collection.find({'vhash': None,
                                       'downloaded': True})
 
 # start up a worker pool
-#pool = ThreadPool(3)
+pool = ThreadPool(5)
 
 def do_vhash(i, image):
     print ('\n[compute vhash] (%s/%s)\t%s' % (
@@ -50,7 +50,13 @@ def do_vhash(i, image):
 total_images = images.count()
 print 'image count: %s' % total_images
 
-for i, image in enumerate(images):
-    do_vhash(i, image)
-    #r = pool.apply_async(do_vhash, (i,image))
+step = 1001
+current = 0
+while images.count() > 0:
+    images = get_Image().collection.find({'vhash': None,
+                                          'downloaded': True})
+    for image in images.limit(step):
+        current += 1
+        #do_vhash(i, image)
+        r = pool.apply_async(do_vhash, (current,image))
 
