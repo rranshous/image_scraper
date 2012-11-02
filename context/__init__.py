@@ -41,6 +41,7 @@ base_map = dict(
 
     get_Image = o.get_image_object,
     get_Blog = o.get_blog_object,
+    get_SimilarImage = o.get_similar_image_object,
 
     # CONFIG
 

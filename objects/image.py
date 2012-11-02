@@ -12,7 +12,8 @@ class Image(BaseModel, Model):
             Index("blogs"),
             Index("downloaded"),
             Index("short_hash"),
-            Index("categories")
+            Index("categories"),
+            Index("is_master")
         )
 
 
