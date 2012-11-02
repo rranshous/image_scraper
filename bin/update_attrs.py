@@ -53,10 +53,18 @@ print 'image count: %s' % total_images
 step = 1001
 current = 0
 while images.count() > 0:
+    results = []
+
     images = get_Image().collection.find({'vhash': None,
                                           'downloaded': True})
     for image in images.limit(step):
         current += 1
         #do_vhash(i, image)
         r = pool.apply_async(do_vhash, (current,image))
+        results.append(r)
+
+    # wait for all results
+    for r in results:
+        r.get()
+
 

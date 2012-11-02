@@ -96,7 +96,11 @@ class Image(BaseModel, Model):
 
         # if we haven't set the vhash, do so
         if not self.vhash:
-            self.vhash = str(compute_vhash(data))
+            try:
+                self.vhash = str(compute_vhash(data))
+            except IOError:
+                # can't generate vhash, PIL can't handle image
+                pass
 
         # uploaded is the name of the key if we uploaded
         # if it already existed, we get False
