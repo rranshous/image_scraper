@@ -49,10 +49,13 @@ base_map = dict(
 
     # MISC
 
-    now = datetime.datetime.now
+    now = datetime.datetime.now,
 
     # TODO: add smart accessors like:
     #       blog_url => blog_short_hash
+
+    # side helpers
+    _iter_cloudfile_images = h.iter_cloudfile_images
 
 )
 

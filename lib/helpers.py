@@ -106,6 +106,23 @@ def upload_image(image_data, config):
         obj.write(image_data)
         return image_hash
 
+def iter_cloudfile_images(config, prefix=''):
+    """
+    pages through all image returning cloudfile obj for each
+    matching the given prefix
+    """
+    servicenet = config.get('cloudfiles', {}).get('servicenet')
+    container = _get_image_container(servicenet)
+
+    last_name = None
+    last_last_name = 0
+    obj = 1
+    while obj:
+        if last_name == last_last_name:
+            break
+        last_last_name = last_name
+        for obj in container.get_objects(prefix=prefix, marker=last_name):
+            yield obj
 
 
 def retrieve_image(img_short_hash, config, stream=False,

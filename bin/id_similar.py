@@ -1,6 +1,9 @@
 
 ## we want to associate similar images to each other
 
+from multiprocessing.pool import ThreadPool
+pool = ThreadPool(5)
+
 from os.path import abspath, dirname, join as path_join
 import sys
 
@@ -33,14 +36,10 @@ compare_vhash = context.get('compare_vhash')
 # go through each image's vhash finding
 # images it's similar to other images
 
-dissimilar_images = Image.collection.find({
-                        'vhash': {'$exists': True},
-                        'similar_found': {'$ne': True}
-                    })
 
-for im in dissimilar_images:
+def do_compare(im):
 
-    print 'Master image: %s' % im.short_hash
+    print '%s' % im.short_hash
 
     for im2 in Image.collection.find({'vhash':{'$exists':True}}):
 
@@ -52,7 +51,7 @@ for im in dissimilar_images:
 
         if compare_vhash(im.vhash, im2.vhash) < MIN_DISTANCE:
 
-            print 'Similar!: %s' % im2.short_hash
+            print '%s=>%s' % (im.short_hash, im2.short_hash)
 
             # we found a similar image! lets see if that image is already
             # in a similar image document
@@ -80,6 +79,8 @@ for im in dissimilar_images:
                 print 'setting as master'
                 similar.master = im.short_hash
                 for sh in similar.short_hashes:
+                    if sh == im.short_hash:
+                        continue
                     _im = Image.get_one(short_hash=sh)
                     _im.is_master = False
                     _im.save()
@@ -95,7 +96,23 @@ for im in dissimilar_images:
             # save our similar doc
             similar.save()
 
-            # go on to the next master image
-            break
 
-    print
+while True:
+    step = 10
+    dissimilar_images = Image.collection.find({
+                            'vhash': {'$exists': True},
+                            'similar_found': {'$ne': True}
+                        }).limit(step)
+
+    for im in dissimilar_images:
+        do_compare(im)
+
+    """
+    results = []
+    for im in dissimilar_images:
+        r = pool.apply_async(do_compare, (im,))
+
+    # wait for all results
+    for r in results:
+        r.get()
+    """
