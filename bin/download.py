@@ -60,7 +60,8 @@ def downloader(download_queue, download_image, stopper):
                 print path
         except Empty:
             print 'empty download queue'
-            pass
+        except Exception, ex:
+            print 'Exception: %s' % ex
 
 
 def finder(prefix_queue, _iter_cloudfile_images, stopper, download_queue):
@@ -77,10 +78,12 @@ def finder(prefix_queue, _iter_cloudfile_images, stopper, download_queue):
                 download_queue.put(obj)
         except Empty:
             print 'empty find queue'
-            pass
+        except Exception, ex:
+            print 'Exception: %s' % ex
 
 
 finder_threads = set()
+downloader_threads = set()
 download_queue = Queue()
 prefix_queue = Queue()
 stopper = Event()
@@ -90,9 +93,13 @@ context.update(download_queue=download_queue,
 
 try:
 
-    # get the download thread going
-    download_thread = Thread(target=context.create_partial(downloader))
-    download_thread.start()
+    # the downloaders
+    DOWNLOADER_COUNT = 3
+    for i in xrange(DOWNLOADER_COUNT):
+        # create and start our threads
+        downloader_thread = Thread(target=context.create_partial(downloader))
+        downloader_thread.start()
+        downloader_threads.add(downloader_thread)
 
     # and the finders
     FINDER_COUNT = 10
@@ -123,7 +130,8 @@ try:
 
 
     # can't kill, need to work on that
-    download_thread.join()
+    for downloader_thread in downloader_threads:
+        downloader_thread.join()
     print 'DONE DOWNLOADING'
     stopper.set()
     for finder_thread in finder_threads:
@@ -131,8 +139,11 @@ try:
 
 except (Exception, KeyboardInterrupt):
     print 'stopping'
+    # can't kill, need to work on that
+    for downloader_thread in downloader_threads:
+        downloader_thread.join()
+    print 'DONE DOWNLOADING'
     stopper.set()
-    download_thread.join()
-    stopper.set()
-    finder_thread.join()
+    for finder_thread in finder_threads:
+        finder_thread.join()
 
