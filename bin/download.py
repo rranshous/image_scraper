@@ -50,6 +50,7 @@ if context.prefix == 'ALL':
     print 'Downloading all objects'
     for prefix in itertools.combinations('abcdefghijklmnopqrstuvwxyz0123456789', 3):
         # go through each of the objects downloading them locally
+        prefix = ''.join(prefix) # prefix will be a tuple from the combinations call
         for i, obj in enumerate(context._iter_cloudfile_images(prefix=prefix)):
             img_path = context.download_image(obj)
             if img_path:
