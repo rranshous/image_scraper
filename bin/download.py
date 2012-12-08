@@ -25,9 +25,9 @@ from context import context
 config = context.get('get_config')(debug, 'scraper')
 context.add('config', config)
 
-# gimmie a prefix to check, if none is provided we'll
+# gimmie a prefix to check, if ALL is provided we'll
 # page through all results
-context.add('prefix', sys.argv[1])
+prefix = sys.argv[1]
 
 # what dir are these files going into ?
 context.update(out_path=os.path.abspath(sys.argv[2]))
@@ -49,70 +49,90 @@ context.update(download_image=download_image)
 # this we are going to use 3 letter prefixes, trying every combination
 # of 3 letter / number
 
-download_queue = Queue()
-stopper = Event()
-context.update(download_queue=download_queue,
-               stopper=stopper)
-
 def downloader(download_queue, download_image, stopper):
     """ download objs from queue """
     while not stopper.is_set():
         try:
-            obj = download_queue.get(True, 2)
+            obj = download_queue.get(True, 5)
             print 'queue obj: %s' % obj
             path = download_image(obj)
             if path:
                 print path
         except Empty:
-            print 'empty queue'
+            print 'empty download queue'
             pass
 
-download_thread = Thread(target=context.create_partial(downloader))
-download_thread.start()
 
-def finder(context):
-    if context.prefix == 'ALL':
-        print 'Downloading all objects'
-        for prefix in itertools.combinations('abcdefghijklmnopqrstuvwxyz0123456789', 3):
-            # go through each of the objects downloading them locally
-            prefix = ''.join(prefix) # prefix will be a tuple from the combinations call
-            for i, obj in enumerate(context._iter_cloudfile_images(prefix=prefix)):
+def finder(prefix_queue, _iter_cloudfile_images, stopper, download_queue):
+
+    while not stopper.is_set():
+        try:
+            prefix = prefix_queue.get(True, 30)
+            print 'queue prefix: %s' % prefix
+
+            for i, obj in enumerate(_iter_cloudfile_images(prefix=prefix)):
+                if stopper.is_set():
+                    return
                 print 'putting in queue: %s %s' % (i, obj)
                 download_queue.put(obj)
+        except Empty:
+            print 'empty find queue'
+            pass
 
-    # normal, non-all run
-    else:
-        print 'Download prefix: %s' % context.prefix
-        # go through each of the objects downloading them locally
-        for i, obj in enumerate(context._iter_cloudfile_images()):
-            print 'putting in queue: %s %s' % (i,obj)
-            download_queue.put(obj)
 
-finder_thread = Thread(target=context.create_partial(finder))
+finder_threads = set()
+download_queue = Queue()
+prefix_queue = Queue()
+stopper = Event()
+context.update(download_queue=download_queue,
+               prefix_queue=prefix_queue,
+               stopper=stopper)
 
 try:
 
-    if context.prefix == 'ALL':
+    # get the download thread going
+    download_thread = Thread(target=context.create_partial(downloader))
+    download_thread.start()
+
+    # and the finders
+    FINDER_COUNT = 10
+    for i in xrange(FINDER_COUNT):
+        # create and start our threads
+        finder_thread = Thread(target=context.create_partial(finder))
+        finder_thread.start()
+        finder_threads.add(finder_thread)
+
+    if prefix == 'ALL':
         print 'Downloading all objects'
-        for prefix in itertools.combinations('abcdefghijklmnopqrstuvwxyz0123456789', 3):
+        for prefix in itertools.combinations('abcdef0123456789', 3):
+            if context.stopper.is_set():
+                break
             # go through each of the objects downloading them locally
             prefix = ''.join(prefix) # prefix will be a tuple from the combinations call
-            for i, obj in enumerate(context._iter_cloudfile_images(prefix=prefix)):
-                print 'putting in queue: %s %s' % (i, obj)
-                download_queue.put(obj)
+            prefix_queue.put(prefix)
 
-    # normal, non-all run
     else:
+        prefix_queue.put(prefix)
         print 'Download prefix: %s' % context.prefix
         # go through each of the objects downloading them locally
         for i, obj in enumerate(context._iter_cloudfile_images()):
+            if context.stopper.is_set():
+                break
             print 'putting in queue: %s %s' % (i,obj)
             download_queue.put(obj)
 
-    print 'joining'
-    download_thread.join()
 
-except KeyboardInterrupt:
+    # can't kill, need to work on that
+    download_thread.join()
+    print 'DONE DOWNLOADING'
+    stopper.set()
+    for finder_thread in finder_threads:
+        finder_thread.join()
+
+except (Exception, KeyboardInterrupt):
     print 'stopping'
     stopper.set()
+    download_thread.join()
+    stopper.set()
+    finder_thread.join()
 
