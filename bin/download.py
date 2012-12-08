@@ -2,6 +2,8 @@
 import itertools
 import os.path
 from os.path import dirname, abspath
+import os
+import errno
 import sys
 
 from threading import Thread, Event
@@ -35,8 +37,27 @@ context.update(out_path=os.path.abspath(sys.argv[2]))
 # our functions to do the work
 def download_image(obj, out_path, overwrite=False):
     out_p = os.path.join(out_path, obj.name)
-    if os.path.exists(out_p) and not overwrite:
-        return False
+
+    # atomic operation to check if file is there, if it's
+    # not than we'll write a place holder file there
+    # and than download the real file
+    # not sure if writing is nec
+    try:
+        fd = os.open(out_p, os.O_CREAT|os.O_EXCL|os.O_RDWR)
+        os.write(fd, ' ')
+        os.close(fd)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+        # file exists, in this case using overwrite w/ multiple
+        # writers can cause two streams to be simultaniously writing
+        if not overwrite:
+            return False
+
+    #if os.path.exists(out_p) and not overwrite:
+        #return False
+
+    # write over what is there
     obj.save_to_filename(out_p)
     return out_p
 
@@ -54,14 +75,13 @@ def downloader(download_queue, download_image, stopper):
     while not stopper.is_set():
         try:
             obj = download_queue.get(True, 5)
-            print 'queue obj: %s' % obj
             path = download_image(obj)
             if path:
                 print path
         except Empty:
             print 'empty download queue'
         except Exception, ex:
-            print 'Exception: %s' % ex
+            print 'DOWNLOADER Exception: %s' % ex
 
 
 def finder(prefix_queue, _iter_cloudfile_images, stopper, download_queue):
@@ -69,23 +89,21 @@ def finder(prefix_queue, _iter_cloudfile_images, stopper, download_queue):
     while not stopper.is_set():
         try:
             prefix = prefix_queue.get(True, 30)
-            print 'queue prefix: %s' % prefix
-
             for i, obj in enumerate(_iter_cloudfile_images(prefix=prefix)):
                 if stopper.is_set():
                     return
-                print 'putting in queue: %s %s' % (i, obj)
                 download_queue.put(obj, True, 30)
         except Empty:
             print 'empty find queue'
         except Exception, ex:
-            print 'Exception: %s' % ex
+            print 'FINDER Exception: %s' % ex
 
-DOWNLOADER_COUNT = 3
+## WARNING: DOWNLOAD CODEPATH IS NOT THREAD SAFE
+DOWNLOADER_COUNT = 1
 FINDER_COUNT = 5
 finder_threads = set()
 downloader_threads = set()
-download_queue = Queue(25)
+download_queue = Queue(DOWNLOADER_COUNT * 10)
 prefix_queue = Queue()
 stopper = Event()
 context.update(download_queue=download_queue,
