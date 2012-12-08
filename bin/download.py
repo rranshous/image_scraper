@@ -75,16 +75,17 @@ def finder(prefix_queue, _iter_cloudfile_images, stopper, download_queue):
                 if stopper.is_set():
                     return
                 print 'putting in queue: %s %s' % (i, obj)
-                download_queue.put(obj)
+                download_queue.put(obj, True, 30)
         except Empty:
             print 'empty find queue'
         except Exception, ex:
             print 'Exception: %s' % ex
 
-
+DOWNLOADER_COUNT = 3
+FINDER_COUNT = 5
 finder_threads = set()
 downloader_threads = set()
-download_queue = Queue()
+download_queue = Queue(25)
 prefix_queue = Queue()
 stopper = Event()
 context.update(download_queue=download_queue,
@@ -94,7 +95,6 @@ context.update(download_queue=download_queue,
 try:
 
     # the downloaders
-    DOWNLOADER_COUNT = 3
     for i in xrange(DOWNLOADER_COUNT):
         # create and start our threads
         downloader_thread = Thread(target=context.create_partial(downloader))
@@ -102,7 +102,6 @@ try:
         downloader_threads.add(downloader_thread)
 
     # and the finders
-    FINDER_COUNT = 10
     for i in xrange(FINDER_COUNT):
         # create and start our threads
         finder_thread = Thread(target=context.create_partial(finder))
@@ -120,13 +119,6 @@ try:
 
     else:
         prefix_queue.put(prefix)
-        print 'Download prefix: %s' % context.prefix
-        # go through each of the objects downloading them locally
-        for i, obj in enumerate(context._iter_cloudfile_images()):
-            if context.stopper.is_set():
-                break
-            print 'putting in queue: %s %s' % (i,obj)
-            download_queue.put(obj)
 
 
     # can't kill, need to work on that
