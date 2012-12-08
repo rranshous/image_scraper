@@ -4,3 +4,14 @@ Create a set of applications which all pass state updates via events
 #Goal
 Create system of applications which can find / download / perminantly store images
 which i want from the internet
+
+------
+
+events:
+
+timer_scrape_page
+blog_image_found 
+blog_image_download_candidate_found
+blog_image_saved
+cell_bombed
+cell_consumed

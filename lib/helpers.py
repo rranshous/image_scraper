@@ -111,6 +111,7 @@ def iter_cloudfile_images(config, prefix=''):
     pages through all image returning cloudfile obj for each
     matching the given prefix
     """
+    print 'iterating cloudfiles: prefix: %s' % prefix
     servicenet = config.get('cloudfiles', {}).get('servicenet')
     container = _get_image_container(servicenet)
 

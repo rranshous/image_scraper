@@ -25,7 +25,7 @@ context.add('config', config)
 
 # gimmie a prefix to check, if none is provided we'll
 # page through all results
-context.update(prefox=sys.argv[1])
+context.add('prefix', sys.argv[1])
 
 # what dir are these files going into ?
 context.update(out_path=os.path.abspath(sys.argv[2]))
@@ -43,8 +43,11 @@ context.update(download_image=download_image)
 
 # go through each of the objects downloading them locally
 for i, obj in enumerate(context._iter_cloudfile_images()):
-    img_path = context.download_image(obj)
-    if img_path:
-        print '[%s] %s' % (i, img_path)
+    try:
+        img_path = context.download_image(obj)
+        if img_path:
+            print '[%s:%s] %s' % (i, context.prefix, img_path)
+    except:
+        print '[%s] EXCEPTION: %s' % (i,ex)
 
 
