@@ -1,6 +1,5 @@
 
-
-import cloudfiles
+import itertools
 import os.path
 from os.path import dirname, abspath
 import sys
@@ -41,13 +40,25 @@ def download_image(obj, out_path, overwrite=False):
 # add our helpers to the context
 context.update(download_image=download_image)
 
-# go through each of the objects downloading them locally
-for i, obj in enumerate(context._iter_cloudfile_images()):
-    try:
+# if we have a prefix of 'ALL' than we want to try and download
+# all the images, the problem is there is a 9999 item limit
+# to paging through the cloudfiles container, to get around
+# this we are going to use 3 letter prefixes, trying every combination
+# of 3 letter / number
+
+if context.prefix == 'ALL':
+    print 'Downloading all objects'
+    for prefix in itertools.combinations('abcdefghijklmnopqrstuvwxyz0123456789', 3):
+        # go through each of the objects downloading them locally
+        for i, obj in enumerate(context._iter_cloudfile_images(prefix=prefix)):
+            img_path = context.download_image(obj)
+            if img_path:
+                print '[%s] %s' % (i, img_path)
+
+# normal, non-all run
+else:
+    # go through each of the objects downloading them locally
+    for i, obj in enumerate(context._iter_cloudfile_images()):
         img_path = context.download_image(obj)
         if img_path:
-            print '[%s:%s] %s' % (i, context.prefix, img_path)
-    except:
-        print '[%s] EXCEPTION: %s' % (i,ex)
-
-
+            print '[%s] %s' % (i, img_path)
